@@ -1796,7 +1796,7 @@ function parseFCST(buf, FX){
     fcstMonths.forEach(mo => {
       const pq = ln.prev_qty[mo] || 0;
       const upx = ln.upx[mo] || 0;
-      if(pq && upx) ln.prev_usd[mo] = pq * upx;
+      if(pq && upx) ln.prev_usd[mo] = pq * upx / 1000;
     });
   });
 
