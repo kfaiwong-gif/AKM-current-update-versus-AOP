@@ -1,0 +1,1823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jetronic · FCST vs AOP · FY2026–28</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+:root{--bg:#ffffff;--s1:#f5f7fa;--s2:#edf0f5;--s3:#e2e6ee;--bdr:#d0d7e3;--bdr2:#b8c2d4;--txt:#1a2035;--mt:#6b7a96;
+  --fcst:#1a7fd4;--aop:#c94d1a;--pos:#007a52;--neg:#c41740;--yel:#b57800;--pur:#5b2de8;
+  --glass:rgba(245,247,250,.85);--glow-f:rgba(26,127,212,.08);--glow-a:rgba(201,77,26,.06);
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+  --radius:8px;--radius-lg:12px;--shadow:0 2px 12px rgba(0,0,0,.08),0 1px 3px rgba(0,0,0,.05)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--txt);min-height:100vh;
+  background-image:radial-gradient(ellipse 80% 60% at 50% -20%,rgba(26,127,212,.03),transparent)}
+/* ── HEADER ──────────────────────────────────────────────────── */
+.hdr{background:linear-gradient(180deg,var(--s1) 0%,rgba(245,247,250,.98) 100%);
+  border-bottom:1px solid var(--bdr);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.brand{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--fcst);letter-spacing:.14em;text-transform:uppercase;
+  text-shadow:0 0 20px rgba(26,127,212,.15)}
+.hdr-sub{font-size:12px;color:var(--mt);font-weight:400}
+.pill{font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid;white-space:nowrap;transition:all .2s}
+.pill:hover{transform:translateY(-1px)}
+.p-f{border-color:rgba(26,127,212,.35);color:var(--fcst);background:rgba(26,127,212,.07)}
+.p-a{border-color:rgba(201,77,26,.35);color:var(--aop);background:rgba(201,77,26,.07)}
+.p-d{border-color:var(--bdr);color:var(--mt);background:rgba(107,122,150,.06)}
+/* ── CURRENCY TOGGLE ─────────────────────────────────────────── */
+.ccy-toggle{display:flex;background:var(--s2);border:1px solid var(--bdr);border-radius:6px;padding:2px;gap:2px}
+.ccy-btn{font-family:var(--mono);font-size:11px;font-weight:500;padding:6px 16px;border-radius:4px;cursor:pointer;color:var(--mt);
+  transition:all .2s ease;border:none;background:transparent}
+.ccy-btn:hover{color:var(--txt);background:rgba(0,0,0,.05)}
+.ccy-btn.active{background:linear-gradient(135deg,var(--yel),#e6a800);color:#000;box-shadow:0 2px 8px rgba(255,194,51,.25)}
+/* ── TABS ────────────────────────────────────────────────────── */
+.tabs{background:var(--s1);border-bottom:1px solid var(--bdr);padding:0 32px;display:flex;gap:2px}
+.tab{font-family:var(--mono);font-size:10px;padding:12px 18px;cursor:pointer;color:var(--mt);
+  border-bottom:2px solid transparent;transition:all .2s ease;text-transform:uppercase;letter-spacing:.1em;white-space:nowrap;
+  position:relative}
+.tab:hover{color:var(--txt);background:rgba(0,0,0,.04)}
+.tab.active{color:var(--fcst);border-bottom-color:var(--fcst);
+  background:linear-gradient(180deg,transparent 60%,rgba(26,127,212,.07) 100%)}
+/* ── LAYOUT ──────────────────────────────────────────────────── */
+.main{padding:24px 32px;max-width:1600px;margin:0 auto}
+.view{display:none;animation:fadeIn .3s ease}.view.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.g7030{display:grid;grid-template-columns:70fr 30fr;gap:16px;margin-bottom:16px}
+.mb{margin-bottom:16px}
+.fy-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.fy-tabs{display:flex;background:var(--s1);border:1px solid var(--bdr);border-radius:var(--radius);padding:3px;gap:2px}
+.fy-tab{font-family:var(--mono);font-size:11px;padding:7px 18px;cursor:pointer;border-radius:6px;color:var(--mt);transition:all .2s ease}
+.fy-tab:hover{color:var(--txt);background:rgba(0,0,0,.05)}
+.fy-tab.active{background:linear-gradient(135deg,var(--fcst),#2d7cd6);color:#fff;box-shadow:0 2px 8px rgba(77,166,255,.25)}
+.legend{display:flex;gap:16px;font-family:var(--mono);font-size:10px;color:var(--mt);align-items:center}
+.ld{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;box-shadow:0 0 6px currentColor}
+/* ── KPI CARDS ───────────────────────────────────────────────── */
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px}
+.kpi{background:linear-gradient(135deg,var(--s1) 0%,var(--s2) 100%);border:1px solid var(--bdr);
+  border-radius:var(--radius);padding:16px 18px;position:relative;overflow:hidden;
+  transition:all .25s ease;box-shadow:var(--shadow)}
+.kpi:hover{transform:translateY(-2px);border-color:var(--bdr2);
+  box-shadow:0 4px 20px rgba(0,0,0,.12),0 2px 6px rgba(0,0,0,.07)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;opacity:0;transition:opacity .25s;pointer-events:none}
+.kpi:hover::after{opacity:1}
+.kpi.cb::before{background:linear-gradient(90deg,var(--fcst),transparent)}
+.kpi.cb::after{background:radial-gradient(ellipse at top,rgba(26,127,212,.07),transparent 70%)}
+.kpi.co::before{background:linear-gradient(90deg,var(--aop),transparent)}
+.kpi.co::after{background:radial-gradient(ellipse at top,rgba(201,77,26,.07),transparent 70%)}
+.kpi.cg::before{background:linear-gradient(90deg,var(--pos),transparent)}
+.kpi.cg::after{background:radial-gradient(ellipse at top,rgba(0,122,82,.07),transparent 70%)}
+.kpi.cr::before{background:linear-gradient(90deg,var(--neg),transparent)}
+.kpi.cr::after{background:radial-gradient(ellipse at top,rgba(196,23,64,.07),transparent 70%)}
+.kpi.cy::before{background:linear-gradient(90deg,var(--yel),transparent)}
+.kpi.cy::after{background:radial-gradient(ellipse at top,rgba(181,120,0,.07),transparent 70%)}
+.kpi.cp::before{background:linear-gradient(90deg,var(--pur),transparent)}
+.kpi.cp::after{background:radial-gradient(ellipse at top,rgba(91,45,232,.07),transparent 70%)}
+.kpi-lbl{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.14em;color:var(--mt);margin-bottom:8px}
+.kpi-val{font-family:var(--mono);font-size:20px;font-weight:500;line-height:1;margin-bottom:5px;
+  letter-spacing:-.01em}
+.kpi-sub{font-size:10px;color:var(--mt);letter-spacing:.01em}
+/* ── PANELS ──────────────────────────────────────────────────── */
+.panel{background:linear-gradient(180deg,var(--s1) 0%,rgba(237,240,245,.95) 100%);border:1px solid var(--bdr);
+  border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);transition:border-color .2s}
+.panel:hover{border-color:var(--bdr2)}
+.ph{padding:13px 18px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;
+  background:rgba(0,0,0,.02)}
+.pt{font-family:var(--mono);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.12em;color:var(--fcst)}
+.pm{font-size:10px;color:var(--mt)}.pb{padding:16px 18px}
+/* ── TABLE ───────────────────────────────────────────────────── */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--mt);
+  padding:9px 12px;text-align:left;border-bottom:1px solid var(--bdr);white-space:nowrap;user-select:none;
+  background:rgba(0,0,0,.025)}
+.tbl th.sortable{cursor:pointer}.tbl th.sortable:hover{color:var(--txt)}
+.tbl td{padding:8px 12px;border-bottom:1px solid rgba(208,215,227,.8);font-family:var(--mono);font-size:11px;white-space:nowrap;
+  transition:background .15s ease}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(26,127,212,.06)}
+.tr{text-align:right}.tm{color:var(--mt)}.tf{color:var(--fcst)}.ta{color:var(--aop)}
+.tg{color:var(--pos)}.tx{color:var(--neg)}
+.tbl-s{overflow-x:auto}.tbl-ys{overflow-y:auto;max-height:430px}
+/* ── EXPANDABLE ROWS ─────────────────────────────────────────── */
+.cust-row{cursor:pointer;transition:all .15s ease}
+.cust-row:hover td{background:rgba(26,127,212,.08)!important}
+.cust-row td:first-child::before{content:'▶ ';font-size:8px;color:var(--mt);transition:all .2s ease;display:inline-block}
+.cust-row.open td:first-child::before{content:'▼ ';color:var(--fcst)}
+.cust-row.open td{background:rgba(26,127,212,.05)}
+.pn-row{display:none;background:rgba(26,127,212,.03);animation:rowSlide .2s ease}
+.pn-row.visible{display:table-row}
+@keyframes rowSlide{from{opacity:0}to{opacity:1}}
+.pn-row td{padding:6px 12px 6px 30px;border-bottom:1px solid rgba(208,215,227,.6);font-size:10px;color:var(--mt)}
+.pn-row td.tf{color:var(--fcst)}.pn-row td.ta{color:var(--aop)}
+.pn-row td.tg{color:var(--pos)}.pn-row td.tx{color:var(--neg)}
+.pn-row td.tr{text-align:right}
+.ov-pn-row{display:none;background:rgba(0,0,0,.02)}
+.ov-pn-row.pn-visible{display:table-row}
+/* ── FORM CONTROLS ───────────────────────────────────────────── */
+.si{background:var(--bg);border:1px solid var(--bdr2);color:var(--txt);font-family:var(--mono);font-size:11px;
+  padding:8px 14px;border-radius:6px;outline:none;transition:all .2s ease}
+.si:focus{border-color:var(--fcst);box-shadow:0 0 0 3px rgba(77,166,255,.1)}.si-sm{width:200px}
+select.si{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234e5f78' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;padding-right:30px}
+.filter-bar{display:flex;gap:12px;margin-bottom:14px;align-items:center;flex-wrap:wrap}
+/* ── MISC ────────────────────────────────────────────────────── */
+.cur{background:rgba(26,127,212,.08);border-left:2px solid var(--fcst)}
+.past{opacity:.45}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--mt)}
+/* ── SETTINGS PANEL ──────────────────────────────────────────── */
+.cfg-overlay{display:none;position:absolute;inset:0;background:rgba(0,0,0,.65);z-index:200;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.cfg-overlay.open{display:flex;align-items:flex-start;justify-content:flex-end}
+.cfg-panel{background:linear-gradient(180deg,var(--s1) 0%,var(--s2) 100%);border-left:1px solid var(--bdr);
+  width:440px;height:100%;overflow-y:auto;padding:32px;display:flex;flex-direction:column;gap:22px;
+  animation:slideIn .25s cubic-bezier(.16,1,.3,1);box-shadow:-8px 0 30px rgba(0,0,0,.12)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:.8}to{transform:translateX(0);opacity:1}}
+.cfg-title{font-family:var(--mono);font-size:13px;color:var(--txt);letter-spacing:.1em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
+.cfg-close{cursor:pointer;color:var(--mt);font-size:18px;line-height:1;padding:6px 10px;border-radius:6px;transition:all .2s}
+.cfg-close:hover{color:var(--txt);background:rgba(0,0,0,.06)}
+.cfg-section{background:var(--s2);border:1px solid var(--bdr);border-radius:var(--radius);padding:18px;transition:border-color .2s}
+.cfg-section:hover{border-color:var(--bdr2)}
+.cfg-section-title{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--mt);margin-bottom:14px}
+.drop-zone{border:1.5px dashed var(--bdr2);border-radius:var(--radius);padding:24px;text-align:center;cursor:pointer;transition:all .25s ease;position:relative}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--fcst);background:rgba(26,127,212,.05);
+  box-shadow:0 0 20px rgba(26,127,212,.1)}
+.drop-zone.loaded{border-color:var(--pos);border-style:solid;background:rgba(0,122,82,.05);
+  box-shadow:0 0 16px rgba(0,122,82,.08)}
+.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.drop-zone-icon{font-size:24px;margin-bottom:8px}
+.drop-zone-label{font-family:var(--mono);font-size:11px;color:var(--mt);line-height:1.6}
+.drop-zone-name{font-family:var(--mono);font-size:11px;color:var(--pos);margin-top:6px;word-break:break-all}
+.cfg-btn{font-family:var(--mono);font-size:11px;font-weight:500;padding:12px 22px;border-radius:var(--radius);cursor:pointer;
+  border:none;transition:all .25s ease;width:100%;position:relative;overflow:hidden}
+.cfg-btn-primary{background:linear-gradient(135deg,var(--fcst),#2d7cd6);color:#fff;
+  box-shadow:0 2px 10px rgba(77,166,255,.2)}
+.cfg-btn-primary:hover{box-shadow:0 4px 16px rgba(77,166,255,.35);transform:translateY(-1px)}
+.cfg-btn-primary:active{transform:translateY(0)}
+.cfg-btn-primary:disabled{background:var(--bdr2);color:var(--mt);cursor:not-allowed;box-shadow:none;transform:none}
+.cfg-status{font-family:var(--mono);font-size:10px;color:var(--mt);text-align:center;min-height:16px;transition:color .2s}
+.cfg-progress{height:3px;background:var(--bdr);border-radius:3px;overflow:hidden;display:none}
+.cfg-progress-bar{height:100%;background:linear-gradient(90deg,var(--fcst),var(--pur));width:0%;transition:width .4s ease;
+  box-shadow:0 0 8px rgba(77,166,255,.4)}
+.cfg-fx-row{display:flex;align-items:center;gap:12px}
+.cfg-fx-input{background:var(--bg);border:1px solid var(--bdr2);border-radius:6px;padding:8px 12px;font-family:var(--mono);font-size:12px;
+  color:var(--txt);width:100px;outline:none;transition:all .2s}
+.cfg-fx-input:focus{border-color:var(--fcst);box-shadow:0 0 0 3px rgba(77,166,255,.1)}
+.cfg-label{font-family:var(--mono);font-size:10px;color:var(--mt)}
+.hdr-btn{font-family:var(--mono);font-size:11px;padding:7px 14px;border-radius:6px;border:1px solid var(--bdr2);
+  background:var(--s2);color:var(--mt);cursor:pointer;transition:all .2s ease}
+.hdr-btn:hover{border-color:var(--fcst);color:var(--fcst);background:rgba(26,127,212,.07);
+  box-shadow:0 0 12px rgba(26,127,212,.12)}
+/* ── 16:9 PRESENTATION DECK ─────────────────────────────────── */
+/* Override base body/html for presentation mode */
+html{overflow:hidden;width:100vw;height:100vh}
+body{margin:0;padding:0;overflow:hidden;width:100vw;height:100vh;min-height:100vh;
+  background:#0a0a14;background-image:none}
+.deck{width:min(100vw,177.78vh);height:min(100vh,56.25vw);position:absolute;
+  top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;
+  background:var(--bg);overflow:hidden;box-shadow:0 0 60px rgba(0,0,0,.5);border-radius:4px}
+/* Header: not sticky, compact */
+.deck .hdr{flex-shrink:0;padding:10px 24px;position:relative;top:auto;backdrop-filter:none;-webkit-backdrop-filter:none}
+/* Tabs: compact */
+.deck .tabs{flex-shrink:0;padding:0 24px}
+/* Main: fill remaining space, act as containing block */
+.deck .main{flex:1;min-height:0;padding:0;max-width:none;margin:0;
+  overflow:hidden;position:relative;display:flex;flex-direction:column}
+/* Views: absolute fill inside main */
+.deck .view{position:absolute;inset:0;padding:14px 24px;overflow:hidden;
+  display:none;animation:none}
+.deck .view.active{display:flex;flex-direction:column}
+/* Slide system */
+.slide-area{flex:1;position:relative;overflow:hidden;min-height:0}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;overflow:hidden;padding:0}
+.slide.active-slide{display:flex}
+/* Scale content within slides */
+.slide .panel{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.slide .panel .ph{flex-shrink:0}
+.slide .panel .pb{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+.slide .panel .pb > div{flex:1;min-height:0}
+.slide .panel .tbl-s{flex:1;min-height:0;overflow:auto;max-height:none}
+.slide .panel .tbl-ys{max-height:none}
+.slide .kpi-row{flex-shrink:0}
+/* Grid containers: force rows to stretch vertically */
+.slide .g2{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr;flex:1;min-height:0;gap:10px}
+.slide .g7030{display:grid;grid-template-columns:70fr 30fr;grid-template-rows:1fr;flex:1;min-height:0;gap:10px}
+.slide .g2 .panel,.slide .g7030 .panel{min-height:0;overflow:hidden}
+.slide .filter-bar{flex-shrink:0;margin-bottom:8px}
+/* Navigation bar */
+.slide-nav{flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:12px;
+  padding:8px 24px;background:var(--s1);border-top:1px solid var(--bdr);font-family:var(--mono);font-size:10px;color:var(--mt)}
+.slide-nav-btn{font-family:var(--mono);font-size:10px;padding:5px 14px;border-radius:4px;cursor:pointer;
+  border:1px solid var(--bdr2);background:var(--s2);color:var(--mt);transition:all .2s}
+.slide-nav-btn:hover{border-color:var(--fcst);color:var(--fcst);background:rgba(26,127,212,.07)}
+.slide-nav-btn:disabled{opacity:.3;cursor:not-allowed;border-color:var(--bdr);color:var(--mt);background:var(--s2)}
+.slide-dots{display:flex;gap:6px;align-items:center}
+.slide-dot{width:8px;height:8px;border-radius:50%;background:var(--bdr2);cursor:pointer;transition:all .2s}
+.slide-dot:hover{background:var(--mt)}
+.slide-dot.active-dot{background:var(--fcst);box-shadow:0 0 6px rgba(26,127,212,.4)}
+.slide-label{min-width:60px;text-align:center}
+/* Presentation-mode size overrides */
+.deck .brand{font-size:12px}
+.deck .hdr-sub{font-size:10px}
+.deck .pill{font-size:9px;padding:3px 8px}
+.deck .ccy-btn{font-size:10px;padding:4px 12px}
+.deck .tab{font-size:9px;padding:8px 14px}
+.deck .kpi{padding:10px 12px}
+.deck .kpi-val{font-size:16px}
+.deck .kpi-lbl{font-size:8px;margin-bottom:4px}
+.deck .kpi-sub{font-size:9px}
+.deck .ph{padding:8px 14px}
+.deck .pt{font-size:9px}
+.deck .pb{padding:10px 14px}
+.deck .tbl th{padding:6px 10px;font-size:8px}
+.deck .tbl td{padding:5px 10px;font-size:10px}
+.deck .fy-row{margin-bottom:8px}
+.deck .fy-tab{font-size:9px;padding:5px 12px}
+.deck .legend{font-size:9px}
+.deck .si{font-size:10px;padding:5px 10px}
+.deck .mb{margin-bottom:8px}
+.deck .g2,.deck .g7030{gap:10px;margin-bottom:0}
+.deck .kpi-row{gap:8px;margin-bottom:10px}
+/* Empty state in deck */
+.deck #emptyState{position:absolute;inset:0;z-index:10}
+</style>  
+</head>
+<body>
+<div class="deck">
+<div class="hdr">
+  <div style="display:flex;align-items:center;gap:12px">
+    <span class="brand">Jetronic</span>
+    <span style="width:1px;height:16px;background:var(--bdr)"></span>
+    <span class="hdr-sub">FCST vs AOP · JetroS · Mar 2026</span>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <div class="ccy-toggle">
+      <button class="ccy-btn active" onclick="setCcy('jpy',this)">¥ JPY</button>
+      <button class="ccy-btn" onclick="setCcy('usd',this)">$ USD</button>
+    </div>
+    <span class="pill p-f">■ FCST</span>
+    <span class="pill p-a">■ AOP</span>
+    <span class="pill p-d" id="srcPill">No data loaded — upload files via Settings</span>
+    <button class="hdr-btn" onclick="openCfg()">⚙ Data Sources</button>
+  </div>
+</div>
+
+<!-- SETTINGS OVERLAY -->
+<div class="cfg-overlay" id="cfgOverlay" onclick="handleOverlayClick(event)">
+  <div class="cfg-panel" onclick="event.stopPropagation()">
+    <div class="cfg-title">
+      Data Sources
+      <span class="cfg-close" onclick="closeCfg()">✕</span>
+    </div>
+
+    <div class="cfg-section">
+      <div class="cfg-section-title">① FCST File — 今回 販売計画</div>
+      <div class="drop-zone" id="fcstZone">
+        <input type="file" accept=".xlsx" id="fcstInput" onchange="handleFile('fcst',this)">
+        <div class="drop-zone-icon">📊</div>
+        <div class="drop-zone-label">Drop FCST_JetroS_*.xlsx here<br>or click to browse</div>
+        <div class="drop-zone-name" id="fcstName"></div>
+      </div>
+    </div>
+
+    <div class="cfg-section">
+      <div class="cfg-section-title">② AOP File — 比較対照予算データ</div>
+      <div class="drop-zone" id="aopZone">
+        <input type="file" accept=".xlsx" id="aopInput" onchange="handleFile('aop',this)">
+        <div class="drop-zone-icon">📋</div>
+        <div class="drop-zone-label">Drop FCST_vs_Budget_JetroS_*.xlsx here<br>or click to browse</div>
+        <div class="drop-zone-name" id="aopName"></div>
+      </div>
+    </div>
+
+    <div class="cfg-section">
+      <div class="cfg-section-title">FX Rate (USD → JPY)</div>
+      <div class="cfg-fx-row">
+        <span class="cfg-label">¥</span>
+        <input class="cfg-fx-input" type="number" id="fxInput" value="150" min="1" max="999" step="1">
+        <span class="cfg-label">per USD</span>
+      </div>
+    </div>
+
+    <div class="cfg-progress" id="cfgProgress"><div class="cfg-progress-bar" id="cfgProgressBar"></div></div>
+    <div class="cfg-status" id="cfgStatus">Upload both files to rebuild dashboard</div>
+    <button class="cfg-btn cfg-btn-primary" id="rebuildBtn" onclick="rebuildDashboard()" disabled>Rebuild Dashboard</button>
+  </div>
+</div>
+<div class="tabs" id="tabBar" style="display:none">
+  <div class="tab active" onclick="sw('overview')">Overview</div>
+  <div class="tab" onclick="sw('monthly')">Monthly Trend</div>
+  <div class="tab" onclick="sw('customers')">Customers</div>
+  <div class="tab" onclick="sw('groups')">Product Groups</div>
+  <div class="tab" onclick="sw('detail')">Line Detail</div>
+  <div class="tab" onclick="sw('markets')">Markets</div>
+</div>
+
+<div class="main">
+
+<!-- EMPTY STATE OVERLAY -->
+<div id="emptyState" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#6b7a96;gap:16px">
+  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#4a5a6e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+  <div style="font-size:18px;font-weight:600;color:#b0bec5">No Data Loaded</div>
+  <div style="font-size:13px;max-width:360px;line-height:1.5">Upload FCST and AOP Excel files via the <strong>Settings</strong> panel (gear icon) to populate the dashboard.</div>
+  <button onclick="openCfg()" style="margin-top:8px;padding:8px 20px;background:#1a7fd4;color:#fff;border:none;border-radius:6px;cursor:pointer;font-family:var(--mono);font-size:13px">Open Settings</button>
+</div>
+
+<!-- OVERVIEW -->
+<div class="view active" id="view-overview">
+  <div class="fy-row" style="flex-shrink:0">
+    <div class="fy-tabs">
+      <div class="fy-tab active" onclick="setFY('fy26',this)">FY26 Apr26–Mar27</div>
+      <div class="fy-tab" onclick="setFY('fy27',this)">FY27 Apr27–Mar28</div>
+    </div>
+    <div class="legend">
+      <span><span class="ld" style="background:var(--fcst)"></span>FCST</span>
+      <span><span class="ld" style="background:var(--aop)"></span>AOP</span>
+      <span><span class="ld" style="background:var(--pos)"></span>+ve var</span>
+      <span><span class="ld" style="background:var(--neg)"></span>-ve var</span>
+    </div>
+  </div>
+  <div class="slide-area">
+    <!-- Slide 1: KPIs + Monthly Chart -->
+    <div class="slide active-slide">
+      <div class="kpi-row" id="kpiRow"></div>
+      <div class="g7030" style="flex:1;min-height:0">
+        <div class="panel">
+          <div class="ph"><div class="pt">FCST vs AOP by Month</div><div class="pm" id="ovLbl"></div></div>
+          <div class="pb"><div style="height:100%"><canvas id="ovChart"></canvas></div></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><div class="pt">Top Customers</div><div class="pm" id="topLbl"></div></div>
+          <div class="pb" id="topBody" style="padding:8px 15px;overflow:auto"></div>
+        </div>
+      </div>
+    </div>
+    <!-- Slide 2: Product Group + Attainment Charts -->
+    <div class="slide">
+      <div class="kpi-row" id="kpiRow2"></div>
+      <div class="g2" style="flex:1;min-height:0">
+        <div class="panel">
+          <div class="ph"><div class="pt">Product Group FCST vs AOP</div><div class="pm" id="grpLbl"></div></div>
+          <div class="pb"><div style="height:100%"><canvas id="grpChart"></canvas></div></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><div class="pt">Attainment % by Group</div><div class="pm">FCST ÷ AOP</div></div>
+          <div class="pb"><div style="height:100%"><canvas id="attChart"></canvas></div></div>
+        </div>
+      </div>
+    </div>
+    <!-- Slide 3: Monthly Table -->
+    <div class="slide">
+      <div class="panel" style="flex:1;min-height:0;display:flex;flex-direction:column">
+        <div class="ph"><div class="pt">Monthly FCST vs AOP</div><div class="pm" id="ovTblLbl"></div></div>
+        <div class="tbl-s" style="flex:1;overflow:auto">
+          <table class="tbl">
+            <thead><tr>
+              <th>Month / Customer / P/N</th>
+              <th class="tr" style="color:var(--fcst)">FCST</th>
+              <th class="tr" style="color:var(--aop)">AOP</th>
+              <th class="tr">Variance</th>
+              <th class="tr">Att%</th>
+              <th class="tr" style="color:var(--mt)">FCST Qty</th>
+              <th class="tr" style="color:var(--mt)">AOP Qty</th>
+              <th class="tr" style="color:var(--mt)">Qty Var</th>
+            </tr></thead>
+            <tbody id="ovTblBody"></tbody>
+            <tfoot id="ovTblFoot"></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- MONTHLY -->
+<div class="view" id="view-monthly">
+  <div class="filter-bar" style="flex-shrink:0">
+    <select class="si" id="moMet" onchange="renderMo()">
+      <option value="rev">Revenue</option>
+      <option value="qty">Quantity (Kpcs)</option>
+    </select>
+    <div class="legend">
+      <span><span class="ld" style="background:var(--fcst)"></span>FCST</span>
+      <span><span class="ld" style="background:var(--aop)"></span>AOP</span>
+    </div>
+  </div>
+  <div class="slide-area">
+    <!-- Slide 1: Chart -->
+    <div class="slide active-slide">
+      <div class="panel" style="flex:1;min-height:0;display:flex;flex-direction:column">
+        <div class="ph"><div class="pt">Monthly FCST vs AOP</div><div class="pm">Apr 2025 – Mar 2028</div></div>
+        <div class="pb" style="flex:1;min-height:0"><div style="height:100%"><canvas id="moChart"></canvas></div></div>
+      </div>
+    </div>
+    <!-- Slide 2: Table -->
+    <div class="slide">
+      <div class="panel" style="flex:1;min-height:0;display:flex;flex-direction:column">
+        <div class="ph"><div class="pt">Monthly Detail</div></div>
+        <div class="tbl-s tbl-ys" style="flex:1;overflow:auto;max-height:none">
+          <table class="tbl">
+            <thead><tr>
+              <th>Month</th><th>FY</th>
+              <th class="tr" id="moFcstHdr">FCST</th>
+              <th class="tr" id="moAopHdr">AOP</th>
+              <th class="tr">Variance</th><th class="tr">Att%</th>
+              <th class="tr">FCST Qty</th><th class="tr">AOP Qty</th>
+            </tr></thead>
+            <tbody id="moTblBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOMERS -->
+<div class="view" id="view-customers">
+  <div class="filter-bar" style="flex-shrink:0">
+    <input type="text" class="si si-sm" id="cSrch" placeholder="Search customer…" oninput="renderCusts()">
+    <select class="si" id="cFY" onchange="renderCusts()">
+      <option value="fy26" selected>FY26 (Apr26–Mar27)</option>
+      <option value="fy27">FY27 (Apr27–Mar28)</option>
+    </select>
+    <span style="font-family:var(--mono);font-size:10px;color:var(--mt)">Click row to expand P/N breakdown</span>
+    <span id="cCount" style="font-family:var(--mono);font-size:10px;color:var(--mt);margin-left:auto"></span>
+  </div>
+  <div class="slide-area">
+    <!-- Slide 1: Chart -->
+    <div class="slide active-slide">
+      <div class="panel" style="flex:1;min-height:0;display:flex;flex-direction:column">
+        <div class="ph"><div class="pt">Customer FCST vs AOP</div><div class="pm" id="cChartLbl">Top 15</div></div>
+        <div class="pb" style="flex:1;min-height:0"><div style="height:100%"><canvas id="cChart"></canvas></div></div>
+      </div>
+    </div>
+    <!-- Slide 2: Table -->
+    <div class="slide">
+      <div class="panel" style="flex:1;min-height:0;display:flex;flex-direction:column">
+        <div class="ph">
+          <div class="pt">Customer Detail + P/N Breakdown</div>
+          <div class="pm">Click customer to expand part numbers</div>
+        </div>
+        <div class="tbl-s tbl-ys" style="flex:1;overflow:auto;max-height:none">
+          <table class="tbl" id="cTbl">
+            <thead><tr>
+              <th onclick="sortCusts('name')" style="cursor:pointer;user-select:none">Customer <span id="cS_name"></span></th>
+              <th class="tr" id="cFcstHdr" onclick="sortCusts('fcst_jpy')" style="cursor:pointer;user-select:none">FCST Amt <span id="cS_fcst_jpy"></span></th>
+              <th class="tr" id="cAopHdr" onclick="sortCusts('aop_jpy')" style="cursor:pointer;user-select:none">AOP Amt <span id="cS_aop_jpy"></span></th>
+              <th class="tr" onclick="sortCusts('var')" style="cursor:pointer;user-select:none">Variance <span id="cS_var"></span></th>
+              <th class="tr" onclick="sortCusts('att')" style="cursor:pointer;user-select:none">Att% <span id="cS_att"></span></th>
+              <th class="tr" onclick="sortCusts('fcst_qty')" style="cursor:pointer;user-select:none">FCST Qty <span id="cS_fcst_qty"></span></th>
+              <th class="tr" onclick="sortCusts('aop_qty')" style="cursor:pointer;user-select:none">AOP Qty <span id="cS_aop_qty"></span></th>
+              <th class="tr">FCST UPx USD</th><th class="tr">AOP UPx JPY</th>
+            </tr></thead>
+            <tbody id="cTblBody"></tbody>
+            <tfoot id="cTblFoot"></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GROUPS -->
+<div class="view" id="view-groups">
+  <div class="filter-bar" style="flex-shrink:0">
+    <select class="si" id="gFY" onchange="renderGrps()">
+      <option value="fy26" selected>FY26 (Apr26–Mar27)</option>
+      <option value="fy27">FY27 (Apr27–Mar28)</option>
+    </select>
+  </div>
+  <div class="slide-area">
+    <!-- Slide 1: Chart -->
+    <div class="slide active-slide">
+      <div class="panel" style="flex:1;min-height:0;display:flex;flex-direction:column">
+        <div class="ph"><div class="pt">Product Group FCST vs AOP</div><div class="pm" id="gChartLbl"></div></div>
+        <div class="pb" style="flex:1;min-height:0"><div style="height:100%"><canvas id="gChart"></canvas></div></div>
+      </div>
+    </div>
+    <!-- Slide 2: Table -->
+    <div class="slide">
+      <div class="panel" style="flex:1;min-height:0;display:flex;flex-direction:column">
+        <div class="ph"><div class="pt">Group Detail</div></div>
+        <div class="tbl-s" style="flex:1;overflow:auto">
+          <table class="tbl">
+            <thead><tr>
+              <th>#</th>
+              <th onclick="sortGrps('name')" style="cursor:pointer;user-select:none">Group <span id="gS_name"></span></th>
+              <th class="tr" id="gFcstHdr" onclick="sortGrps('fcst_jpy')" style="cursor:pointer;user-select:none">FCST <span id="gS_fcst_jpy"></span></th>
+              <th class="tr" id="gAopHdr" onclick="sortGrps('aop_jpy')" style="cursor:pointer;user-select:none">AOP <span id="gS_aop_jpy"></span></th>
+              <th class="tr" onclick="sortGrps('var')" style="cursor:pointer;user-select:none">Variance <span id="gS_var"></span></th>
+              <th class="tr" onclick="sortGrps('att')" style="cursor:pointer;user-select:none">Att% <span id="gS_att"></span></th>
+              <th class="tr" onclick="sortGrps('fcst_qty')" style="cursor:pointer;user-select:none">FCST Qty <span id="gS_fcst_qty"></span></th>
+              <th class="tr" onclick="sortGrps('aop_qty')" style="cursor:pointer;user-select:none">AOP Qty <span id="gS_aop_qty"></span></th>
+            </tr></thead>
+            <tbody id="gTblBody"></tbody>
+            <tfoot id="gTblFoot"></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL -->
+<div class="view" id="view-detail">
+  <div class="filter-bar" style="flex-shrink:0">
+    <input type="text" class="si si-sm" id="dSrch" placeholder="Search product, customer…" oninput="filterDet()">
+    <select class="si" id="dFY" onchange="filterDet()">
+      <option value="fy26" selected>FY26 (Apr26–Mar27)</option>
+      <option value="fy27">FY27 (Apr27–Mar28)</option>
+      <option value="fy28">FY2028</option>
+    </select>
+    <select class="si" id="dGrp" onchange="filterDet()"><option value="">All Groups</option></select>
+    <span id="dCount" style="font-family:var(--mono);font-size:10px;color:var(--mt)"></span>
+  </div>
+  <div class="slide-area">
+    <div class="slide active-slide">
+      <div class="panel" style="flex:1;min-height:0;display:flex;flex-direction:column">
+        <div class="tbl-s tbl-ys" style="flex:1;overflow:auto;max-height:none">
+          <table class="tbl">
+            <thead><tr>
+              <th>Product</th><th>Group</th><th>Customer</th>
+              <th class="tr" id="dFcstHdr">FCST Amt</th>
+              <th class="tr" id="dAopHdr">AOP Amt</th>
+              <th class="tr">Variance</th><th class="tr">Att%</th>
+              <th class="tr">FCST Qty</th><th class="tr">AOP Qty</th>
+              <th class="tr">FCST UPx USD</th><th class="tr">AOP UPx JPY</th>
+            </tr></thead>
+            <tbody id="dTblBody"></tbody>
+          </table>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 15px;border-top:1px solid var(--bdr);font-family:var(--mono);font-size:10px;color:var(--mt);flex-shrink:0">
+          <span id="dPgInfo"></span>
+          <div style="display:flex;gap:6px">
+            <button onclick="dPg(-1)" id="dPrev" style="background:var(--bg);border:1px solid var(--bdr2);color:var(--mt);font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:3px;cursor:pointer">← Prev</button>
+            <button onclick="dPg(1)" id="dNext" style="background:var(--bg);border:1px solid var(--bdr2);color:var(--mt);font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:3px;cursor:pointer">Next →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MARKETS -->
+<div class="view" id="view-markets">
+  <div class="filter-bar" style="flex-shrink:0">
+    <select class="si" id="mkFY" onchange="renderMarkets()">
+      <option value="fy26" selected>FY26 (Apr26–Mar27)</option>
+      <option value="fy27">FY27 (Apr27–Mar28)</option>
+    </select>
+    <select class="si" id="mkSel" onchange="renderMarkets()">
+      <option value="">Select Market…</option>
+    </select>
+    <span class="pm" id="mkSelInfo"></span>
+  </div>
+  <div class="slide-area">
+    <!-- Slide 1: Variance by Month -->
+    <div class="slide active-slide">
+      <div class="panel" style="flex:1;min-height:0;display:flex;flex-direction:column">
+        <div class="ph"><div class="pt">Variance by Month</div><div class="pm" id="mkMoLbl">Click row to expand by Customer → P/N</div></div>
+        <div class="tbl-s tbl-ys" style="flex:1;overflow:auto;max-height:none">
+          <table class="tbl">
+            <thead><tr>
+              <th>Month</th>
+              <th class="tr" id="mkFcstHdr">FCST</th>
+              <th class="tr" id="mkAopHdr">AOP</th>
+              <th class="tr">Variance</th>
+              <th class="tr">Att%</th>
+              <th class="tr">FCST Qty</th>
+              <th class="tr">AOP Qty</th>
+              <th class="tr">Qty Var</th>
+            </tr></thead>
+            <tbody id="mkMoBody"></tbody>
+            <tfoot id="mkMoFoot"></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+    <!-- Slide 2: Variance by Customer -->
+    <div class="slide">
+      <div class="panel" style="flex:1;min-height:0;display:flex;flex-direction:column">
+        <div class="ph"><div class="pt">Variance by Customer</div><div class="pm">Click row to expand by P/N → Month</div></div>
+        <div class="tbl-s tbl-ys" style="flex:1;overflow:auto;max-height:none">
+          <table class="tbl">
+            <thead><tr>
+              <th>Customer</th>
+              <th class="tr">FCST</th>
+              <th class="tr">AOP</th>
+              <th class="tr">Variance</th>
+              <th class="tr">Att%</th>
+              <th class="tr">FCST Qty</th>
+              <th class="tr">AOP Qty</th>
+              <th class="tr">Qty Var</th>
+            </tr></thead>
+            <tbody id="mkCustBody"></tbody>
+            <tfoot id="mkCustFoot"></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+<!-- SLIDE NAVIGATION -->
+<div class="slide-nav" id="slideNav" style="display:none">
+  <button class="slide-nav-btn" id="slidePrev" onclick="navSlide(-1)">← Prev</button>
+  <div class="slide-dots" id="slideDots"></div>
+  <span class="slide-label" id="slideLabel">1 / 1</span>
+  <button class="slide-nav-btn" id="slideNext" onclick="navSlide(1)">Next →</button>
+</div>
+</div><!-- /deck -->
+<script>
+const D={"meta":{"fx_rate":150,"as_of":"","total_lines":0,"total_customers":0,"fcst_src":"","aop_qty_src":"","aop_amt_src":"","aop_upx_src":"","fy_def":"FY26=Apr2026-Mar2027 | FY27=Apr2027-Mar2028"},"summary":{"fy26":{"label":"FY2026 (Apr 2026–Mar 2027)","fcst_jpy":0,"aop_jpy":0,"fcst_usd":0,"aop_usd":0,"var_jpy":0,"var_usd":0,"fcst_qty":0,"aop_qty":0,"var_qty":0,"att":0},"fy27":{"label":"FY2027 (Apr 2027–Mar 2028)","fcst_jpy":0,"aop_jpy":0,"fcst_usd":0,"aop_usd":0,"var_jpy":0,"var_usd":0,"fcst_qty":0,"aop_qty":0,"var_qty":0,"att":0}},"monthly":[],"customers":[],"groups":[],"markets":[],"products":[]};
+const FX=D.meta.fx_rate;
+
+// Helper: generate YYYY/MM month list (used by renderOv and rebuilder)
+function genMonths(y,m,n){const o=[];let cy=y,cm=m;for(let i=0;i<n;i++){o.push(`${cy}/${String(cm).padStart(2,'0')}`);cm++;if(cm>12){cm=1;cy++;}}return o;}
+let CCY='jpy'; // current currency
+
+Chart.defaults.color='#4a5a6e'; Chart.defaults.borderColor='#1a2230';
+const CTX={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#ffffff',borderColor:'#d0d7e3',borderWidth:1,titleColor:'#1a2035',bodyColor:'#6b7a96',padding:10}}};
+const C={f:'#1a7fd4',a:'#c94d1a',p:'#007a52',n:'#c41740',y:'#b57800',pu:'#5b2de8',t:'#006b5a'};
+const PAL=[C.f,C.a,C.p,C.y,C.pu,C.t,C.n,'#c48900','#2a7d8c'];
+
+// ── Currency helpers ──────────────────────────────────────────────
+function fmtRev(v){
+  if(v===0) return '—';
+  return CCY==='jpy' ? '¥'+v.toLocaleString('en',{maximumFractionDigits:0})+'M' : '$'+(v/FX).toFixed(3)+'M';
+}
+function fmtRevNum(v){ return CCY==='jpy' ? v : v/FX; }
+function fmtRevK(v){
+  if(v===0) return '—';
+  const n=CCY==='jpy'?v:v/FX;
+  return CCY==='jpy'?'¥'+n.toFixed(0)+'M':'$'+n.toFixed(3)+'M';
+}
+function revSuffix(){ return CCY==='jpy'?'JPY M':'USD M'; }
+function revTickFn(v){ return CCY==='jpy'?'¥'+v+'M':'$'+(v/FX).toFixed(2)+'M'; }
+const fQ=v=>v===0?'—':v.toLocaleString('en',{maximumFractionDigits:1});
+const att=(f,a)=>a>0?f/a*100:null;
+const attStr=(f,a)=>{const p=att(f,a);return p===null?'—':p.toFixed(1)+'%'};
+const varCls=v=>v>=0?'tg':'tx';
+
+// ── Currency toggle ────────────────────────────────────────────────
+function setCcy(ccy, el){
+  CCY=ccy;
+  document.querySelectorAll('.ccy-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  refreshAll();
+}
+
+function refreshAll(){
+  if(tabInited['overview']) renderOv();
+  if(tabInited['monthly']) { renderMoTable(); renderMo(); updateMoHdrs(); }
+  if(tabInited['customers']) renderCusts();
+  if(tabInited['groups']) renderGrps();
+  if(tabInited['detail']) renderDet();
+  if(tabInited['markets']) renderMarkets();
+  updateAllHdrs();
+}
+function updateAllHdrs(){
+  const s=revSuffix();
+  ['moFcstHdr','moAopHdr','cFcstHdr','cAopHdr','gFcstHdr','gAopHdr','dFcstHdr','dAopHdr','mkFcstHdr','mkAopHdr'].forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    if(id.includes('Fcst')) el.textContent='FCST '+s; else el.textContent='AOP '+s;
+  });
+}
+function updateMoHdrs(){ updateAllHdrs(); }
+
+// ── Slide navigation ──────────────────────────────────────────────
+const slideState={}; // {tabName: {current:0, total:N}}
+let activeTabName='overview';
+
+function initSlides(tabName){
+  const view=document.getElementById('view-'+tabName);
+  if(!view) return;
+  const slides=view.querySelectorAll('.slide-area > .slide');
+  if(!slides.length){ slideState[tabName]={current:0,total:1}; }
+  else{ slideState[tabName]={current:0,total:slides.length}; }
+  updateSlideUI();
+}
+
+function goToSlide(tabName, idx){
+  const view=document.getElementById('view-'+tabName);
+  if(!view) return;
+  const slides=view.querySelectorAll('.slide-area > .slide');
+  if(!slides.length) return;
+  const st=slideState[tabName];
+  if(!st) return;
+  st.current=Math.max(0,Math.min(idx,st.total-1));
+  slides.forEach((s,i)=>s.classList.toggle('active-slide',i===st.current));
+  updateSlideUI();
+  // Trigger chart resize after slide transition
+  setTimeout(()=>window.dispatchEvent(new Event('resize')),50);
+}
+
+function navSlide(dir){
+  const st=slideState[activeTabName];
+  if(!st) return;
+  goToSlide(activeTabName, st.current+dir);
+}
+
+function updateSlideUI(){
+  const st=slideState[activeTabName];
+  if(!st) return;
+  const label=document.getElementById('slideLabel');
+  const dots=document.getElementById('slideDots');
+  const prev=document.getElementById('slidePrev');
+  const next=document.getElementById('slideNext');
+  label.textContent=(st.current+1)+' / '+st.total;
+  prev.disabled=st.current<=0;
+  next.disabled=st.current>=st.total-1;
+  // Build dots
+  let html='';
+  for(let i=0;i<st.total;i++){
+    html+=`<div class="slide-dot${i===st.current?' active-dot':''}" onclick="goToSlide('${activeTabName}',${i})"></div>`;
+  }
+  dots.innerHTML=html;
+  // Hide nav if only 1 slide
+  document.getElementById('slideNav').style.display=st.total<=1?'none':'flex';
+}
+
+// Keyboard navigation
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.tagName==='TEXTAREA') return;
+  if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();navSlide(1);}
+  if(e.key==='ArrowLeft'){e.preventDefault();navSlide(-1);}
+});
+
+// ── Tab switching ──────────────────────────────────────────────────
+const tabInited={};
+function sw(n, force=false){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['overview','monthly','customers','groups','detail','markets'][i]===n));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+n).classList.add('active');
+  activeTabName=n;
+  if(!tabInited[n]||force){tabInited[n]=true;
+    if(n==='overview'){renderOv();}
+    if(n==='monthly'){initMo();}
+    if(n==='customers'){initCusts();}
+    if(n==='groups'){initGrps();}
+    if(n==='detail'){initDet();}
+    if(n==='markets'){initMarkets();}
+  }
+  if(!slideState[n]) initSlides(n);
+  updateSlideUI();
+}
+
+// ── OVERVIEW ──────────────────────────────────────────────────────
+let curFY='fy26', ovCh, grpCh, attCh;
+function setFY(fy,el){curFY=fy;document.querySelectorAll('.fy-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');renderOv();}
+
+function renderOv(){
+  const s=D.summary[curFY];
+  const fj=s.fcst_jpy,aj=s.aop_jpy,vj=s.var_jpy;
+  const fv=fmtRevNum(fj), av=fmtRevNum(aj), vv=fmtRevNum(vj);
+  const fStr=fmtRev(fj), aStr=fmtRev(aj);
+  const vStr=(vj>=0?'+':'')+fmtRev(Math.abs(vj));
+  const att_=s.att;
+  document.getElementById('kpiRow').innerHTML=`
+    <div class="kpi cb"><div class="kpi-lbl">FCST Revenue</div>
+      <div class="kpi-val" style="color:${C.f}">${fStr}</div>
+      <div class="kpi-sub">${revSuffix()}</div></div>
+    <div class="kpi co"><div class="kpi-lbl">AOP Budget</div>
+      <div class="kpi-val" style="color:${C.a}">${aStr}</div>
+      <div class="kpi-sub">${revSuffix()}</div></div>
+    <div class="kpi ${vj>=0?'cg':'cr'}"><div class="kpi-lbl">Variance</div>
+      <div class="kpi-val" style="color:${vj>=0?C.p:C.n}">${vStr}</div>
+      <div class="kpi-sub">${vj>=0?'Above':'Below'} AOP</div></div>
+    <div class="kpi ${att_>=100?'cg':'cr'}"><div class="kpi-lbl">Attainment %</div>
+      <div class="kpi-val" style="color:${att_>=100?C.p:C.n}">${att_?att_.toFixed(1)+'%':'—'}</div>
+      <div class="kpi-sub">FCST ÷ AOP</div></div>
+    <div class="kpi cb"><div class="kpi-lbl">FCST Qty</div>
+      <div class="kpi-val" style="color:${C.f}">${s.fcst_qty.toLocaleString('en',{maximumFractionDigits:0})} K</div>
+      <div class="kpi-sub">Kpcs · AOP: ${s.aop_qty.toLocaleString('en',{maximumFractionDigits:0})} K</div></div>
+    <div class="kpi ${s.var_qty>=0?'cg':'cr'}"><div class="kpi-lbl">Qty Variance</div>
+      <div class="kpi-val" style="color:${s.var_qty>=0?C.p:C.n}">${s.var_qty>=0?'+':''}${s.var_qty.toLocaleString('en',{maximumFractionDigits:0})} K</div>
+      <div class="kpi-sub">${s.var_qty>=0?'Above':'Below'} AOP</div></div>`;
+  // Mirror KPIs to slide 2
+  const kr2=document.getElementById('kpiRow2');
+  if(kr2) kr2.innerHTML=document.getElementById('kpiRow').innerHTML;
+
+  const fyMoKeys={fy26:genMonths(2026,4,12),fy27:genMonths(2027,4,12),fy28:genMonths(2028,4,12)};
+  const mos=fyMoKeys[curFY].map(mk=>D.monthly.find(m=>m.month===mk)).filter(Boolean);
+  const labels=mos.map(m=>m.month.slice(5));
+  const fcD=mos.map(m=>fmtRevNum(m.fcst_jpy)), aoD=mos.map(m=>fmtRevNum(m.aop_jpy));
+  const vrD=mos.map(m=>fmtRevNum(m.var_jpy));
+  document.getElementById('ovLbl').textContent=s.label+' · '+revSuffix();
+  if(ovCh) ovCh.destroy();
+  ovCh=new Chart(document.getElementById('ovChart'),{
+    type:'bar',data:{labels,datasets:[
+      {type:'bar',label:'FCST',data:fcD,backgroundColor:C.f+'66',borderColor:C.f,borderWidth:1,borderRadius:3,order:2},
+      {type:'bar',label:'AOP', data:aoD,backgroundColor:C.a+'55',borderColor:C.a,borderWidth:1,borderRadius:3,order:3},
+      {type:'line',label:'Variance',data:vrD,borderColor:vrD.map(v=>v>=0?C.p:C.n),pointBackgroundColor:vrD.map(v=>v>=0?C.p:C.n),borderWidth:2,pointRadius:3,tension:.3,order:1},
+    ]},
+    options:{...CTX,plugins:{...CTX.plugins,legend:{display:true,labels:{color:'#4a5a6e',font:{family:"'DM Mono'",size:9},boxWidth:8,padding:10}},
+      tooltip:{...CTX.plugins.tooltip,callbacks:{label:ctx=>[` ${ctx.dataset.label}: ${fmtRevK(ctx.parsed.y*(CCY==='jpy'?1:FX))}`]}}},
+      scales:{x:{grid:{display:false},ticks:{font:{family:"'DM Mono'",size:9}}},
+        y:{grid:{color:'#1a2230'},ticks:{font:{family:"'DM Mono'",size:9},callback:v=>revTickFn(CCY==='jpy'?v:v*FX)}}}}
+  });
+
+  const get=(o,path)=>path.split('.').reduce((a,k)=>a?.[k],o);
+  const fk=curFY+'.fcst_jpy';
+  const top6=[...D.customers].filter(c=>get(c,fk)>0).sort((a,b)=>get(b,fk)-get(a,fk)).slice(0,6);
+  const maxV=top6[0]?get(top6[0],fk):1;
+  document.getElementById('topLbl').textContent=s.label;
+  document.getElementById('topBody').innerHTML=top6.map(c=>{
+    const cv=c[curFY], att_=cv.aop_jpy>0?cv.fcst_jpy/cv.aop_jpy*100:null;
+    return`<div style="padding:5px 0;border-bottom:1px solid var(--bdr)">
+      <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+        <span style="font-size:12px;font-weight:500">${c.name}</span>
+        <span style="font-family:var(--mono);font-size:11px;color:${C.f}">${fmtRev(cv.fcst_jpy)}</span>
+      </div>
+      <div style="height:3px;background:var(--bdr2);border-radius:2px">
+        <div style="width:${(cv.fcst_jpy/maxV*100).toFixed(0)}%;height:100%;background:${C.f};border-radius:2px"></div>
+      </div>
+      <div style="font-family:var(--mono);font-size:9px;color:${att_?att_>=100?C.p:C.n:'var(--mt)'};margin-top:2px">
+        ${att_?att_.toFixed(0)+'% att · ':''}AOP ${fmtRev(cv.aop_jpy)}
+      </div>
+    </div>`;
+  }).join('');
+
+  const gs=D.groups.filter(g=>g[curFY].fcst_jpy>0||g[curFY].aop_jpy>0);
+  document.getElementById('grpLbl').textContent=s.label+' · '+revSuffix();
+  if(grpCh) grpCh.destroy();
+  grpCh=new Chart(document.getElementById('grpChart'),{
+    type:'bar',data:{labels:gs.map(g=>g.name.replace(/^(AV|HF|MG)\//,'')),datasets:[
+      {label:'FCST',data:gs.map(g=>fmtRevNum(g[curFY].fcst_jpy)),backgroundColor:C.f+'66',borderColor:C.f,borderWidth:1,borderRadius:3},
+      {label:'AOP', data:gs.map(g=>fmtRevNum(g[curFY].aop_jpy)),backgroundColor:C.a+'44',borderColor:C.a,borderWidth:1,borderRadius:3},
+    ]},
+    options:{...CTX,plugins:{...CTX.plugins,legend:{display:true,labels:{color:'#4a5a6e',font:{family:"'DM Mono'",size:9},boxWidth:8,padding:8}},
+      tooltip:{...CTX.plugins.tooltip,callbacks:{label:ctx=>` ${ctx.dataset.label}: ${fmtRevK(ctx.parsed.y*(CCY==='jpy'?1:FX))}`}}},
+      scales:{x:{grid:{display:false},ticks:{font:{family:"'DM Mono'",size:8},maxRotation:35}},
+        y:{grid:{color:'#1a2230'},ticks:{font:{family:"'DM Mono'",size:9},callback:v=>revTickFn(CCY==='jpy'?v:v*FX)}}}}
+  });
+  const attData=gs.filter(g=>g[curFY].aop_jpy>0).map(g=>({name:g.name.replace(/^(AV|HF|MG)\//,''),a:g[curFY].fcst_jpy/g[curFY].aop_jpy*100}));
+  if(attCh) attCh.destroy();
+  attCh=new Chart(document.getElementById('attChart'),{
+    type:'bar',data:{labels:attData.map(a=>a.name),
+      datasets:[{data:attData.map(a=>a.a),backgroundColor:attData.map(a=>a.a>=100?C.p+'88':C.n+'88'),borderColor:attData.map(a=>a.a>=100?C.p:C.n),borderWidth:1,borderRadius:3}]},
+    options:{...CTX,plugins:{...CTX.plugins,tooltip:{...CTX.plugins.tooltip,callbacks:{label:ctx=>` ${ctx.parsed.y.toFixed(1)}%`}}},
+      scales:{x:{grid:{display:false},ticks:{font:{family:"'DM Mono'",size:8},maxRotation:35}},
+        y:{grid:{color:'#1a2230'},ticks:{font:{family:"'DM Mono'",size:9},callback:v=>v.toFixed(0)+'%'},min:0}}}
+  });
+
+  // Monthly FCST vs AOP table with expandable customer+PN breakdown
+  document.getElementById('ovTblLbl').textContent=s.label+' · '+revSuffix()+' · Click row to expand';
+
+  let html='';
+  mos.forEach((m,mi)=>{
+    const vj=m.var_jpy, vq=m.fcst_qty-m.aop_qty;
+    const att_=m.aop_jpy>0?m.fcst_jpy/m.aop_jpy*100:null;
+    const noFcst=m.fcst_jpy===0&&m.aop_jpy>0;
+    const rowId='ovm-'+mi;
+    html+=`<tr class="cust-row" onclick="togglePN('${rowId}',this)" style="${noFcst?'opacity:0.6':''}">
+      <td class="tm" style="font-weight:600">${m.month}</td>
+      <td class="tr tf">${m.fcst_jpy>0?fmtRev(m.fcst_jpy):'<span style="color:var(--mt)">—</span>'}</td>
+      <td class="tr ta">${m.aop_jpy>0?fmtRev(m.aop_jpy):'<span style="color:var(--mt)">—</span>'}</td>
+      <td class="tr ${varCls(vj)}">${m.fcst_jpy>0||m.aop_jpy>0?(vj>=0?'+':'')+fmtRev(Math.abs(vj)):'<span style="color:var(--mt)">—</span>'}</td>
+      <td class="tr ${att_?att_>=100?'tg':'tx':'tm'}">${att_?att_.toFixed(1)+'%':'<span style="color:var(--mt)">—</span>'}</td>
+      <td class="tr tm">${m.fcst_qty>0?fQ(m.fcst_qty):'<span style="color:var(--mt)">—</span>'}</td>
+      <td class="tr tm">${m.aop_qty>0?fQ(m.aop_qty):'<span style="color:var(--mt)">—</span>'}</td>
+      <td class="tr ${varCls(vq)}">${m.fcst_qty>0||m.aop_qty>0?(vq>=0?'+':'')+fQ(Math.abs(vq)):'<span style="color:var(--mt)">—</span>'}</td>
+    </tr>`;
+
+    // Group by customer for this month using D.products[].monthly (real per-line monthly data)
+    const custMap = {};
+    D.products.forEach(p=>{
+      if(!p.monthly) return;
+      const mv = p.monthly[m.month];
+      if(!mv) return;
+      const fa=mv.fcst_jpy||0, aa=mv.aop_jpy||0, fq=mv.fcst_qty||0, aq=mv.aop_qty||0;
+      if(!fa && !aa && !fq && !aq) return;
+      const cname=p.customer||'Unknown';
+      if(!custMap[cname]) custMap[cname]={fj:0,aj:0,fq:0,aq:0,pns:[]};
+      custMap[cname].fj+=fa;
+      custMap[cname].aj+=aa;
+      custMap[cname].fq+=fq;
+      custMap[cname].aq+=aq;
+      custMap[cname].pns.push({prod:p.prod, gr:p.group, fa, aa, fq, aq});
+    });
+
+    // Sort customers by fcst amt desc
+    const custsSorted=Object.entries(custMap).sort((a,b)=>b[1].fj-a[1].fj);
+    custsSorted.forEach(([cname, cv],ci)=>{
+      const cvj=cv.fj-cv.aj, cvq=cv.fq-cv.aq;
+      const catt=cv.aj>0?cv.fj/cv.aj*100:null;
+      const custRowId=rowId+'-c'+ci;
+      html+=`<tr class="pn-row" data-parent="${rowId}" style="background:rgba(59,130,246,.05);cursor:pointer" onclick="toggleOvPN('${custRowId}',this)">
+        <td style="padding-left:20px;font-weight:500;font-size:11px">▶ ${cname}</td>
+        <td class="tr tf" style="font-size:11px">${cv.fj?fmtRev(cv.fj):'—'}</td>
+        <td class="tr ta" style="font-size:11px">${cv.aj?fmtRev(cv.aj):'—'}</td>
+        <td class="tr ${varCls(cvj)}" style="font-size:11px">${cvj>=0?'+':''}${fmtRev(Math.abs(cvj))}</td>
+        <td class="tr ${catt?catt>=100?'tg':'tx':'tm'}" style="font-size:11px">${catt?catt.toFixed(1)+'%':'—'}</td>
+        <td class="tr tm" style="font-size:11px">${cv.fq?fQ(cv.fq):'—'}</td>
+        <td class="tr tm" style="font-size:11px">${cv.aq?fQ(cv.aq):'—'}</td>
+        <td class="tr ${varCls(cvq)}" style="font-size:11px">${cvq>=0?'+':''}${fQ(Math.abs(cvq))}</td>
+      </tr>`;
+      // P/N rows
+      cv.pns.sort((a,b)=>b.fa-a.fa).forEach(({prod,gr,fa,aa,fq,aq})=>{
+        const pvj=fa-aa, pvq=fq-aq;
+        const patt=aa>0?fa/aa*100:null;
+        html+=`<tr class="pn-row ov-pn-row" data-parent="${rowId}" data-custparent="${custRowId}">
+          <td style="padding-left:40px;font-size:10px">↳ <span style="color:var(--txt);font-weight:500">${prod}</span> <span style="color:var(--mt);font-size:9px">${gr}</span></td>
+          <td class="tr tf" style="font-size:10px">${fa?fmtRev(fa):'—'}</td>
+          <td class="tr ta" style="font-size:10px">${aa?fmtRev(aa):'—'}</td>
+          <td class="tr ${varCls(pvj)}" style="font-size:10px">${pvj>=0?'+':''}${fmtRev(Math.abs(pvj))}</td>
+          <td class="tr ${patt?patt>=100?'tg':'tx':'tm'}" style="font-size:10px">${patt?patt.toFixed(1)+'%':'—'}</td>
+          <td class="tr tm" style="font-size:10px">${fq?fQ(fq):'—'}</td>
+          <td class="tr tm" style="font-size:10px">${aq?fQ(aq):'—'}</td>
+          <td class="tr ${varCls(pvq)}" style="font-size:10px">${pvq>=0?'+':''}${fQ(Math.abs(pvq))}</td>
+        </tr>`;
+      });
+    });
+  });
+  document.getElementById('ovTblBody').innerHTML=html;
+
+  // totals footer
+  const tf=mos.reduce((acc,m)=>({fj:acc.fj+m.fcst_jpy,aj:acc.aj+m.aop_jpy,fq:acc.fq+m.fcst_qty,aq:acc.aq+m.aop_qty}),{fj:0,aj:0,fq:0,aq:0});
+  const tvj=tf.fj-tf.aj, tvq=tf.fq-tf.aq, tatt=tf.aj>0?tf.fj/tf.aj*100:null;
+  document.getElementById('ovTblFoot').innerHTML=`<tr style="border-top:1px solid #2a3a50;background:#141e2c;font-weight:700">
+    <td style="color:#8ab4d4">FY TOTAL</td>
+    <td class="tr tf">${fmtRev(tf.fj)}</td>
+    <td class="tr ta">${fmtRev(tf.aj)}</td>
+    <td class="tr ${varCls(tvj)}">${tvj>=0?'+':''}${fmtRev(Math.abs(tvj))}</td>
+    <td class="tr ${tatt?tatt>=100?'tg':'tx':'tm'}">${tatt?tatt.toFixed(1)+'%':'—'}</td>
+    <td class="tr tm">${fQ(tf.fq)}</td>
+    <td class="tr tm">${fQ(tf.aq)}</td>
+    <td class="tr ${varCls(tvq)}">${tvq>=0?'+':''}${fQ(Math.abs(tvq))}</td>
+  </tr>`;
+}
+function hasData(){ return D.monthly && D.monthly.length>0; }
+function hideEmptyState(){ const el=document.getElementById('emptyState'); if(el) el.style.display='none'; document.getElementById('tabBar').style.display=''; document.getElementById('slideNav').style.display=''; }
+function showEmptyState(){ const el=document.getElementById('emptyState'); if(el) el.style.display='flex'; document.getElementById('tabBar').style.display='none'; document.getElementById('slideNav').style.display='none'; }
+if(hasData()){ hideEmptyState(); renderOv(); tabInited['overview']=true; }
+initSlides('overview'); updateSlideUI();
+
+// ── MONTHLY ─────────────────────────────────────────────────────
+let moCh; // monthly chart
+function initMo(){ renderMoTable(); renderMo(); updateAllHdrs(); }
+function renderMoTable(){
+  const fyOf=m=>m<='2026/03'?'FY26':m<='2027/03'?'FY27':'FY28';
+  document.getElementById('moTblBody').innerHTML=D.monthly.map((m,i)=>{
+    const vj=m.var_jpy; const isCur=m.month==='2026/03'; const isPast=m.month<'2026/03';
+    const sep=(m.month==='2026/04'||m.month==='2027/04')?'style="border-top:2px solid '+C.f+'"':'';
+    return`<tr class="${isCur?'cur':isPast?'past':''}" ${sep}>
+      <td>${m.month}${isCur?' ◀':''}</td>
+      <td class="tm" style="font-size:9px">${fyOf(m.month)}</td>
+      <td class="tr tf">${fmtRev(m.fcst_jpy)}</td>
+      <td class="tr ta">${fmtRev(m.aop_jpy)}</td>
+      <td class="tr ${varCls(vj)}">${vj>=0?'+':''}${fmtRev(Math.abs(vj))}</td>
+      <td class="tr ${vj>=0?'tg':'tx'}">${m.att?m.att.toFixed(1)+'%':'—'}</td>
+      <td class="tr tm">${fQ(m.fcst_qty)}</td>
+      <td class="tr tm">${fQ(m.aop_qty)}</td>
+    </tr>`;
+  }).join('');
+}
+function renderMo(){
+  const isQty=document.getElementById('moMet').value==='qty';
+  const fcD=D.monthly.map(m=>isQty?m.fcst_qty:fmtRevNum(m.fcst_jpy));
+  const aoD=D.monthly.map(m=>isQty?m.aop_qty:fmtRevNum(m.aop_jpy));
+  const vrD=fcD.map((f,i)=>f-aoD[i]);
+  const bgs=D.monthly.map(m=>m.month<='2026/03'?C.f+'88':m.month<='2027/03'?C.p+'88':C.a+'88');
+  if(moCh) moCh.destroy();
+  moCh=new Chart(document.getElementById('moChart'),{
+    type:'bar',data:{labels:D.monthly.map(m=>m.month.slice(2)),datasets:[
+      {type:'bar',label:'FCST',data:fcD,backgroundColor:bgs,borderColor:bgs.map(b=>b.slice(0,7)),borderWidth:1,borderRadius:2,order:2},
+      {type:'bar',label:'AOP', data:aoD,backgroundColor:bgs.map(b=>b.replace('88','33')),borderWidth:0,borderRadius:2,order:3},
+      {type:'line',label:'Variance',data:vrD,borderColor:vrD.map(v=>v>=0?C.p:C.n),pointBackgroundColor:vrD.map(v=>v>=0?C.p:C.n),borderWidth:1.5,pointRadius:2,tension:.2,order:1},
+    ]},
+    options:{...CTX,plugins:{...CTX.plugins,legend:{display:true,labels:{color:'#4a5a6e',font:{family:"'DM Mono'",size:9},boxWidth:8,padding:10}},
+      tooltip:{...CTX.plugins.tooltip,callbacks:{label:ctx=>{
+        const m=D.monthly[ctx.dataIndex];
+        return[` FCST: ${fmtRev(m.fcst_jpy)} | ${fQ(m.fcst_qty)} Kpcs`,` AOP:  ${fmtRev(m.aop_jpy)}`,` Var:  ${(m.var_jpy>=0?'+':'')}${fmtRev(Math.abs(m.var_jpy))} | ${m.att?m.att.toFixed(1)+'%':'—'}`];
+      }}}},
+      scales:{x:{grid:{display:false},ticks:{font:{family:"'DM Mono'",size:8},maxRotation:45}},
+        y:{grid:{color:'#1a2230'},ticks:{font:{family:"'DM Mono'",size:9}}}}}
+  });
+}
+
+// ── CUSTOMERS ────────────────────────────────────────────────────
+let cCh; // customers chart
+let cSortKey='fcst_jpy', cSortAsc=false;
+function sortCusts(key){
+  if(cSortKey===key) cSortAsc=!cSortAsc; else {cSortKey=key; cSortAsc=(key==='name');}
+  renderCusts();
+}
+function initCusts(){ renderCusts(); updateAllHdrs(); }
+function renderCusts(){
+  const q=document.getElementById('cSrch').value.toLowerCase();
+  const fy=document.getElementById('cFY').value;
+  const filtered=D.customers.filter(c=>{
+    if(q&&!c.name.toLowerCase().includes(q)) return false;
+    return c[fy].fcst_jpy>0||c[fy].aop_jpy>0;
+  });
+  filtered.sort((a,b)=>{
+    const av=a[fy], bv=b[fy];
+    let va, vb;
+    if(cSortKey==='name'){va=a.name;vb=b.name;return cSortAsc?(va>vb?1:-1):(va<vb?1:-1);}
+    if(cSortKey==='var'){va=av.fcst_jpy-av.aop_jpy;vb=bv.fcst_jpy-bv.aop_jpy;}
+    else if(cSortKey==='att'){va=av.aop_jpy?av.fcst_jpy/av.aop_jpy:0;vb=bv.aop_jpy?bv.fcst_jpy/bv.aop_jpy:0;}
+    else{va=av[cSortKey]||0;vb=bv[cSortKey]||0;}
+    return cSortAsc?va-vb:vb-va;
+  });
+  ['name','fcst_jpy','aop_jpy','var','att','fcst_qty','aop_qty'].forEach(k=>{
+    const el=document.getElementById('cS_'+k);
+    if(el) el.textContent=cSortKey===k?(cSortAsc?'▲':'▼'):'';
+  });
+  document.getElementById('cCount').textContent=filtered.length+' customers';
+  document.getElementById('cChartLbl').textContent='Top 15 · '+revSuffix();
+
+  const top15=filtered.slice(0,15);
+  if(cCh) cCh.destroy();
+  cCh=new Chart(document.getElementById('cChart'),{
+    type:'bar',data:{labels:top15.map(c=>c.name),datasets:[
+      {label:'FCST',data:top15.map(c=>fmtRevNum(c[fy].fcst_jpy)),backgroundColor:C.f+'66',borderColor:C.f,borderWidth:1,borderRadius:3},
+      {label:'AOP', data:top15.map(c=>fmtRevNum(c[fy].aop_jpy)),backgroundColor:C.a+'44',borderColor:C.a,borderWidth:1,borderRadius:3},
+    ]},
+    options:{...CTX,plugins:{...CTX.plugins,legend:{display:true,labels:{color:'#4a5a6e',font:{family:"'DM Mono'",size:9},boxWidth:8,padding:8}},
+      tooltip:{...CTX.plugins.tooltip,callbacks:{label:ctx=>` ${ctx.dataset.label}: ${fmtRevK(ctx.parsed.y*(CCY==='jpy'?1:FX))}`}}},
+      scales:{x:{grid:{display:false},ticks:{font:{family:"'DM Mono'",size:9},maxRotation:35}},
+        y:{grid:{color:'#1a2230'},ticks:{font:{family:"'DM Mono'",size:9},callback:v=>revTickFn(CCY==='jpy'?v:v*FX)}}}}
+  });
+
+  // Build customer rows with expandable P/N
+  const tbody=document.getElementById('cTblBody');
+  let html='';
+  filtered.forEach((c,idx)=>{
+    const cv=c[fy]; const vj=cv.fcst_jpy-cv.aop_jpy;
+    const rowId='cr-'+idx;
+    html+=`<tr class="cust-row" onclick="togglePN('${rowId}',this)">
+      <td style="font-weight:500">${c.name}</td>
+      <td class="tr tf">${fmtRev(cv.fcst_jpy)}</td>
+      <td class="tr ta">${fmtRev(cv.aop_jpy)}</td>
+      <td class="tr ${varCls(vj)}">${vj>=0?'+':''}${fmtRev(Math.abs(vj))}</td>
+      <td class="tr ${vj>=0?'tg':'tx'}">${attStr(cv.fcst_jpy,cv.aop_jpy)}</td>
+      <td class="tr tm">${fQ(cv.fcst_qty)}</td>
+      <td class="tr tm">${fQ(cv.aop_qty)}</td>
+    </tr>`;
+    // P/N sub-rows
+    const pns=c.pn||[];
+    if(pns.length>0){
+      pns.forEach(p=>{
+        const pv=p[fy]||p['fy27']||{}; const pvj=(pv.fcst_jpy||0)-(pv.aop_jpy||0);
+        html+=`<tr class="pn-row" data-parent="${rowId}">
+          <td>↳ <span style="color:var(--txt);font-weight:500">${p.prod}</span> <span style="color:var(--mt);font-size:9px">${p.group}</span></td>
+          <td class="tr tf">${fmtRev(pv.fcst_jpy||0)}</td>
+          <td class="tr ta">${fmtRev(pv.aop_jpy||0)}</td>
+          <td class="tr ${varCls(pvj)}">${pvj>=0?'+':''}${fmtRev(Math.abs(pvj))}</td>
+          <td class="tr ${pvj>=0?'tg':'tx'}">${attStr(pv.fcst_jpy||0,pv.aop_jpy||0)}</td>
+          <td class="tr tm">${fQ(pv.fcst_qty||0)}</td>
+          <td class="tr tm">${fQ(pv.aop_qty||0)}</td>
+          <td class="tr tm">${(pv.fcst_upx||0)>0?'$'+pv.fcst_upx.toFixed(4):'—'}</td>
+          <td class="tr tm">${(pv.aop_upx||0)>0?'¥'+pv.aop_upx.toFixed(4):'—'}</td>
+        </tr>`;
+      });
+    } else {
+      html+=`<tr class="pn-row" data-parent="${rowId}">
+        <td colspan="7" style="color:var(--mt);font-size:10px;padding-left:28px">No P/N detail available</td>
+      </tr>`;
+    }
+  });
+  tbody.innerHTML=html;
+  // totals row
+  const tf=filtered.reduce((s,c)=>{const v=c[fy];s.fj+=v.fcst_jpy;s.aj+=v.aop_jpy;s.fq+=v.fcst_qty;s.aq+=v.aop_qty;return s;},{fj:0,aj:0,fq:0,aq:0});
+  const tvj=tf.fj-tf.aj;
+  document.getElementById('cTblFoot').innerHTML=`<tr style="border-top:1px solid #2a3a50;font-weight:600;background:#141e2c">
+    <td style="font-weight:700;color:#8ab4d4">TOTAL (${filtered.length} customers)</td>
+    <td class="tr tf" style="font-weight:700">${fmtRev(tf.fj)}</td>
+    <td class="tr ta" style="font-weight:700">${fmtRev(tf.aj)}</td>
+    <td class="tr ${varCls(tvj)}" style="font-weight:700">${tvj>=0?'+':''}${fmtRev(Math.abs(tvj))}</td>
+    <td class="tr ${tvj>=0?'tg':'tx'}" style="font-weight:700">${attStr(tf.fj,tf.aj)}</td>
+    <td class="tr tm" style="font-weight:700">${fQ(tf.fq)}</td>
+    <td class="tr tm" style="font-weight:700">${fQ(tf.aq)}</td>
+    <td colspan="2"></td>
+  </tr>`;
+}
+
+function togglePN(rowId, triggerEl){
+  const isOpen=triggerEl.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.cust-row.open').forEach(r=>r.classList.remove('open'));
+  document.querySelectorAll('.pn-row.visible').forEach(r=>r.classList.remove('visible'));
+  document.querySelectorAll('.ov-pn-row.pn-visible').forEach(r=>r.classList.remove('pn-visible'));
+  if(!isOpen){
+    triggerEl.classList.add('open');
+    // Show direct pn-rows but NOT ov-pn-rows (those need a second click on customer)
+    document.querySelectorAll(`.pn-row[data-parent="${rowId}"]:not(.ov-pn-row)`).forEach(r=>r.classList.add('visible'));
+  }
+}
+
+function toggleOvPN(custRowId, triggerEl){
+  event.stopPropagation();
+  const isOpen=triggerEl.classList.contains('ov-cust-open');
+  // Close all customer-level opens within this month
+  document.querySelectorAll('.pn-row.ov-cust-open').forEach(r=>r.classList.remove('ov-cust-open'));
+  document.querySelectorAll('.ov-pn-row.pn-visible').forEach(r=>r.classList.remove('pn-visible'));
+  if(!isOpen){
+    triggerEl.classList.add('ov-cust-open');
+    triggerEl.querySelector('td:first-child').textContent=triggerEl.querySelector('td:first-child').textContent.replace('▶','▼');
+    document.querySelectorAll(`.ov-pn-row[data-custparent="${custRowId}"]`).forEach(r=>r.classList.add('pn-visible'));
+  } else {
+    triggerEl.querySelector('td:first-child').textContent=triggerEl.querySelector('td:first-child').textContent.replace('▼','▶');
+  }
+}
+
+// ── GROUPS ──────────────────────────────────────────────────────
+let gCh, gSortKey='fcst_jpy', gSortAsc=false;
+function sortGrps(key){
+  if(gSortKey===key) gSortAsc=!gSortAsc; else {gSortKey=key; gSortAsc=(key==='name');}
+  renderGrps();
+}
+function initGrps(){ renderGrps(); updateAllHdrs(); }
+function renderGrps(){
+  const fy=document.getElementById('gFY').value;
+  let gs=D.groups.filter(g=>g[fy].fcst_jpy>0||g[fy].aop_jpy>0);
+  gs.sort((a,b)=>{
+    const av=a[fy], bv=b[fy];
+    let va, vb;
+    if(gSortKey==='name'){va=a.name;vb=b.name;return gSortAsc?(va>vb?1:-1):(va<vb?1:-1);}
+    if(gSortKey==='var'){va=av.fcst_jpy-av.aop_jpy;vb=bv.fcst_jpy-bv.aop_jpy;}
+    else if(gSortKey==='att'){va=av.aop_jpy?av.fcst_jpy/av.aop_jpy:0;vb=bv.aop_jpy?bv.fcst_jpy/bv.aop_jpy:0;}
+    else{va=av[gSortKey]||0;vb=bv[gSortKey]||0;}
+    return gSortAsc?va-vb:vb-va;
+  });
+  // update sort indicators
+  ['name','fcst_jpy','aop_jpy','var','att','fcst_qty','aop_qty'].forEach(k=>{
+    const el=document.getElementById('gS_'+k);
+    if(el) el.textContent=gSortKey===k?(gSortAsc?'▲':'▼'):'';
+  });
+  document.getElementById('gChartLbl').textContent=revSuffix();
+  if(gCh) gCh.destroy();
+  gCh=new Chart(document.getElementById('gChart'),{
+    type:'bar',data:{labels:gs.map(g=>g.name),datasets:[
+      {label:'FCST',data:gs.map(g=>fmtRevNum(g[fy].fcst_jpy)),backgroundColor:C.f+'66',borderColor:C.f,borderWidth:1,borderRadius:3},
+      {label:'AOP', data:gs.map(g=>fmtRevNum(g[fy].aop_jpy)),backgroundColor:C.a+'44',borderColor:C.a,borderWidth:1,borderRadius:3},
+    ]},
+    options:{...CTX,plugins:{...CTX.plugins,legend:{display:true,labels:{color:'#4a5a6e',font:{family:"'DM Mono'",size:9},boxWidth:8,padding:8}},
+      tooltip:{...CTX.plugins.tooltip,callbacks:{label:ctx=>` ${ctx.dataset.label}: ${fmtRevK(ctx.parsed.y*(CCY==='jpy'?1:FX))}`}}},
+      scales:{x:{grid:{display:false},ticks:{font:{family:"'DM Mono'",size:9},maxRotation:35}},
+        y:{grid:{color:'#1a2230'},ticks:{font:{family:"'DM Mono'",size:9},callback:v=>revTickFn(CCY==='jpy'?v:v*FX)}}}}
+  });
+  document.getElementById('gTblBody').innerHTML=gs.map((g,i)=>{
+    const gv=g[fy]; const vj=gv.fcst_jpy-gv.aop_jpy;
+    return`<tr>
+      <td class="tm">${i+1}</td><td style="font-weight:500">${g.name}</td>
+      <td class="tr tf">${fmtRev(gv.fcst_jpy)}</td>
+      <td class="tr ta">${fmtRev(gv.aop_jpy)}</td>
+      <td class="tr ${varCls(vj)}">${vj>=0?'+':''}${fmtRev(Math.abs(vj))}</td>
+      <td class="tr ${vj>=0?'tg':'tx'}">${attStr(gv.fcst_jpy,gv.aop_jpy)}</td>
+      <td class="tr tm">${fQ(gv.fcst_qty)}</td>
+      <td class="tr tm">${fQ(gv.aop_qty)}</td>
+    </tr>`;
+  }).join('');
+  // totals row
+  const tf=gs.reduce((s,g)=>{const v=g[fy];s.fj+=v.fcst_jpy;s.aj+=v.aop_jpy;s.fq+=v.fcst_qty;s.aq+=v.aop_qty;return s;},{fj:0,aj:0,fq:0,aq:0});
+  const tvj=tf.fj-tf.aj;
+  document.getElementById('gTblFoot').innerHTML=`<tr style="border-top:1px solid #2a3a50;font-weight:600;background:#141e2c">
+    <td></td><td style="font-weight:700;color:#8ab4d4">TOTAL</td>
+    <td class="tr tf" style="font-weight:700">${fmtRev(tf.fj)}</td>
+    <td class="tr ta" style="font-weight:700">${fmtRev(tf.aj)}</td>
+    <td class="tr ${varCls(tvj)}" style="font-weight:700">${tvj>=0?'+':''}${fmtRev(Math.abs(tvj))}</td>
+    <td class="tr ${tvj>=0?'tg':'tx'}" style="font-weight:700">${attStr(tf.fj,tf.aj)}</td>
+    <td class="tr tm" style="font-weight:700">${fQ(tf.fq)}</td>
+    <td class="tr tm" style="font-weight:700">${fQ(tf.aq)}</td>
+  </tr>`;
+}
+
+// ── MARKETS ─────────────────────────────────────────────────────
+function initMarkets(){
+  // Populate market dropdown
+  const sel=document.getElementById('mkSel');
+  sel.innerHTML='<option value="">Select Market…</option>';
+  const names=(D.markets||[]).map(m=>m.name).sort();
+  names.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);});
+  if(names.length) {sel.value=names[0];}
+  renderMarkets(); updateAllHdrs();
+}
+function toggleMkMo(rowId, el){
+  const isOpen=el.classList.contains('open');
+  document.querySelectorAll('#mkMoBody .cust-row.open').forEach(r=>r.classList.remove('open'));
+  document.querySelectorAll('#mkMoBody .pn-row.visible').forEach(r=>r.classList.remove('visible'));
+  document.querySelectorAll('#mkMoBody .ov-pn-row.pn-visible').forEach(r=>r.classList.remove('pn-visible'));
+  if(!isOpen){
+    el.classList.add('open');
+    document.querySelectorAll(`#mkMoBody .pn-row[data-parent="${rowId}"]:not(.ov-pn-row)`).forEach(r=>r.classList.add('visible'));
+  }
+}
+function toggleMkMoCust(custRowId, el){
+  event.stopPropagation();
+  const isOpen=el.classList.contains('ov-cust-open');
+  document.querySelectorAll('#mkMoBody .pn-row.ov-cust-open').forEach(r=>r.classList.remove('ov-cust-open'));
+  document.querySelectorAll('#mkMoBody .ov-pn-row.pn-visible').forEach(r=>r.classList.remove('pn-visible'));
+  if(!isOpen){
+    el.classList.add('ov-cust-open');
+    el.querySelector('td:first-child').textContent=el.querySelector('td:first-child').textContent.replace('▶','▼');
+    document.querySelectorAll(`#mkMoBody .ov-pn-row[data-custparent="${custRowId}"]`).forEach(r=>r.classList.add('pn-visible'));
+  } else {
+    el.querySelector('td:first-child').textContent=el.querySelector('td:first-child').textContent.replace('▼','▶');
+  }
+}
+function toggleMkCust(rowId, el){
+  const isOpen=el.classList.contains('open');
+  document.querySelectorAll('#mkCustBody .cust-row.open').forEach(r=>r.classList.remove('open'));
+  document.querySelectorAll('#mkCustBody .pn-row.visible').forEach(r=>r.classList.remove('visible'));
+  document.querySelectorAll('#mkCustBody .ov-pn-row.pn-visible').forEach(r=>r.classList.remove('pn-visible'));
+  if(!isOpen){
+    el.classList.add('open');
+    document.querySelectorAll(`#mkCustBody .pn-row[data-parent="${rowId}"]:not(.ov-pn-row)`).forEach(r=>r.classList.add('visible'));
+  }
+}
+function toggleMkCustPN(pnRowId, el){
+  event.stopPropagation();
+  const isOpen=el.classList.contains('ov-cust-open');
+  document.querySelectorAll('#mkCustBody .pn-row.ov-cust-open').forEach(r=>r.classList.remove('ov-cust-open'));
+  document.querySelectorAll('#mkCustBody .ov-pn-row.pn-visible').forEach(r=>r.classList.remove('pn-visible'));
+  if(!isOpen){
+    el.classList.add('ov-cust-open');
+    el.querySelector('td:first-child').textContent=el.querySelector('td:first-child').textContent.replace('▶','▼');
+    document.querySelectorAll(`#mkCustBody .ov-pn-row[data-custparent="${pnRowId}"]`).forEach(r=>r.classList.add('pn-visible'));
+  } else {
+    el.querySelector('td:first-child').textContent=el.querySelector('td:first-child').textContent.replace('▼','▶');
+  }
+}
+function renderMarkets(){
+  const fy=document.getElementById('mkFY').value;
+  const selMk=document.getElementById('mkSel').value;
+  if(!selMk){
+    document.getElementById('mkSelInfo').textContent='Please select a market';
+    document.getElementById('mkMoBody').innerHTML='';
+    document.getElementById('mkMoFoot').innerHTML='';
+    document.getElementById('mkCustBody').innerHTML='';
+    document.getElementById('mkCustFoot').innerHTML='';
+    return;
+  }
+  // Filter products for selected market + FY
+  const fyMoKeys={fy26:genMonths(2026,4,12),fy27:genMonths(2027,4,12)};
+  const mos=fyMoKeys[fy]||[];
+  const prods=D.products.filter(p=>(p.market||'Unknown')===selMk);
+  const mkData=(D.markets||[]).find(m=>m.name===selMk);
+  if(mkData){
+    const mv=mkData[fy]; const vj=mv.fcst_jpy-mv.aop_jpy;
+    document.getElementById('mkSelInfo').textContent=`${selMk} · FCST ${fmtRev(mv.fcst_jpy)} · AOP ${fmtRev(mv.aop_jpy)} · Var ${vj>=0?'+':''}${fmtRev(Math.abs(vj))} · ${attStr(mv.fcst_jpy,mv.aop_jpy)}`;
+  }
+
+  // ── SECTION 1: Variance by Month ──
+  let moHtml='';
+  let totFj=0,totAj=0,totFq=0,totAq=0;
+  mos.forEach((mo,mi)=>{
+    let mfj=0,maj=0,mfq=0,maq=0;
+    const custMap={};
+    prods.forEach(p=>{
+      if(!p.monthly) return;
+      const mv=p.monthly[mo]; if(!mv) return;
+      const fa=mv.fcst_jpy||0, aa=mv.aop_jpy||0, fq=mv.fcst_qty||0, aq=mv.aop_qty||0;
+      if(!fa&&!aa&&!fq&&!aq) return;
+      mfj+=fa; maj+=aa; mfq+=fq; maq+=aq;
+      const cn=p.customer||'Unknown';
+      if(!custMap[cn]) custMap[cn]={fj:0,aj:0,fq:0,aq:0,pns:[]};
+      custMap[cn].fj+=fa; custMap[cn].aj+=aa; custMap[cn].fq+=fq; custMap[cn].aq+=aq;
+      custMap[cn].pns.push({prod:p.prod,gr:p.group,fa,aa,fq,aq});
+    });
+    if(!mfj&&!maj) return;
+    totFj+=mfj; totAj+=maj; totFq+=mfq; totAq+=maq;
+    const vj=mfj-maj, vq=mfq-maq, ma=maj>0?mfj/maj*100:null;
+    const rowId='mkmo-'+mi;
+    moHtml+=`<tr class="cust-row" onclick="toggleMkMo('${rowId}',this)">
+      <td class="tm" style="font-weight:600">${mo}</td>
+      <td class="tr tf">${mfj?fmtRev(mfj):'—'}</td>
+      <td class="tr ta">${maj?fmtRev(maj):'—'}</td>
+      <td class="tr ${varCls(vj)}">${(vj>=0?'+':'')+fmtRev(Math.abs(vj))}</td>
+      <td class="tr ${ma?ma>=100?'tg':'tx':'tm'}">${ma?ma.toFixed(1)+'%':'—'}</td>
+      <td class="tr tm">${mfq?fQ(mfq):'—'}</td>
+      <td class="tr tm">${maq?fQ(maq):'—'}</td>
+      <td class="tr ${varCls(vq)}">${(vq>=0?'+':'')+fQ(Math.abs(vq))}</td>
+    </tr>`;
+    const custsSorted=Object.entries(custMap).sort((a,b)=>b[1].fj-a[1].fj);
+    custsSorted.forEach(([cn,cv],ci)=>{
+      const cvj=cv.fj-cv.aj, cvq=cv.fq-cv.aq, ca=cv.aj>0?cv.fj/cv.aj*100:null;
+      const cid=rowId+'-c'+ci;
+      moHtml+=`<tr class="pn-row" data-parent="${rowId}" style="background:rgba(26,127,212,.05);cursor:pointer" onclick="toggleMkMoCust('${cid}',this)">
+        <td style="padding-left:20px;font-weight:500;font-size:11px">▶ ${cn}</td>
+        <td class="tr tf" style="font-size:11px">${cv.fj?fmtRev(cv.fj):'—'}</td>
+        <td class="tr ta" style="font-size:11px">${cv.aj?fmtRev(cv.aj):'—'}</td>
+        <td class="tr ${varCls(cvj)}" style="font-size:11px">${cvj>=0?'+':''}${fmtRev(Math.abs(cvj))}</td>
+        <td class="tr ${ca?ca>=100?'tg':'tx':'tm'}" style="font-size:11px">${ca?ca.toFixed(1)+'%':'—'}</td>
+        <td class="tr tm" style="font-size:11px">${cv.fq?fQ(cv.fq):'—'}</td>
+        <td class="tr tm" style="font-size:11px">${cv.aq?fQ(cv.aq):'—'}</td>
+        <td class="tr ${varCls(cvq)}" style="font-size:11px">${cvq>=0?'+':''}${fQ(Math.abs(cvq))}</td>
+      </tr>`;
+      cv.pns.sort((a,b)=>b.fa-a.fa).forEach(({prod,gr,fa,aa,fq,aq})=>{
+        const pvj=fa-aa, pvq=fq-aq, pa=aa>0?fa/aa*100:null;
+        moHtml+=`<tr class="pn-row ov-pn-row" data-parent="${rowId}" data-custparent="${cid}">
+          <td style="padding-left:40px;font-size:10px">↳ <span style="color:var(--txt);font-weight:500">${prod}</span> <span style="color:var(--mt);font-size:9px">${gr}</span></td>
+          <td class="tr tf" style="font-size:10px">${fa?fmtRev(fa):'—'}</td>
+          <td class="tr ta" style="font-size:10px">${aa?fmtRev(aa):'—'}</td>
+          <td class="tr ${varCls(pvj)}" style="font-size:10px">${pvj>=0?'+':''}${fmtRev(Math.abs(pvj))}</td>
+          <td class="tr ${pa?pa>=100?'tg':'tx':'tm'}" style="font-size:10px">${pa?pa.toFixed(1)+'%':'—'}</td>
+          <td class="tr tm" style="font-size:10px">${fq?fQ(fq):'—'}</td>
+          <td class="tr tm" style="font-size:10px">${aq?fQ(aq):'—'}</td>
+          <td class="tr ${varCls(pvq)}" style="font-size:10px">${pvq>=0?'+':''}${fQ(Math.abs(pvq))}</td>
+        </tr>`;
+      });
+    });
+  });
+  document.getElementById('mkMoBody').innerHTML=moHtml;
+  const tvj=totFj-totAj, tvq=totFq-totAq, tatt=totAj>0?totFj/totAj*100:null;
+  document.getElementById('mkMoFoot').innerHTML=`<tr style="border-top:1px solid var(--bdr2);font-weight:700;background:var(--s2)">
+    <td style="color:var(--fcst)">FY TOTAL</td>
+    <td class="tr tf">${fmtRev(totFj)}</td><td class="tr ta">${fmtRev(totAj)}</td>
+    <td class="tr ${varCls(tvj)}">${tvj>=0?'+':''}${fmtRev(Math.abs(tvj))}</td>
+    <td class="tr ${tatt?tatt>=100?'tg':'tx':'tm'}">${tatt?tatt.toFixed(1)+'%':'—'}</td>
+    <td class="tr tm">${fQ(totFq)}</td><td class="tr tm">${fQ(totAq)}</td>
+    <td class="tr ${varCls(tvq)}">${tvq>=0?'+':''}${fQ(Math.abs(tvq))}</td>
+  </tr>`;
+
+  // ── SECTION 2: Variance by Customer ──
+  const custAgg={};
+  prods.forEach(p=>{
+    const cn=p.customer||'Unknown';
+    if(!custAgg[cn]) custAgg[cn]={fj:0,aj:0,fq:0,aq:0,pns:{}};
+    const pv=p[fy]; if(!pv) return;
+    custAgg[cn].fj+=pv.fcst_jpy||0; custAgg[cn].aj+=pv.aop_jpy||0;
+    custAgg[cn].fq+=pv.fcst_qty||0; custAgg[cn].aq+=pv.aop_qty||0;
+    const pnKey=p.prod;
+    if(!custAgg[cn].pns[pnKey]) custAgg[cn].pns[pnKey]={prod:p.prod,gr:p.group,fj:0,aj:0,fq:0,aq:0,monthly:{}};
+    const pn=custAgg[cn].pns[pnKey];
+    pn.fj+=pv.fcst_jpy||0; pn.aj+=pv.aop_jpy||0; pn.fq+=pv.fcst_qty||0; pn.aq+=pv.aop_qty||0;
+    // collect monthly for this pn
+    if(p.monthly){
+      mos.forEach(mo=>{
+        const mv=p.monthly[mo]; if(!mv) return;
+        if(!pn.monthly[mo]) pn.monthly[mo]={fj:0,aj:0,fq:0,aq:0};
+        pn.monthly[mo].fj+=mv.fcst_jpy||0; pn.monthly[mo].aj+=mv.aop_jpy||0;
+        pn.monthly[mo].fq+=mv.fcst_qty||0; pn.monthly[mo].aq+=mv.aop_qty||0;
+      });
+    }
+  });
+  const custArr=Object.entries(custAgg).filter(([,v])=>v.fj>0||v.aj>0).sort((a,b)=>b[1].fj-a[1].fj);
+  let custHtml='';
+  let cTotFj=0,cTotAj=0,cTotFq=0,cTotAq=0;
+  custArr.forEach(([cn,cv],ci)=>{
+    cTotFj+=cv.fj; cTotAj+=cv.aj; cTotFq+=cv.fq; cTotAq+=cv.aq;
+    const vj=cv.fj-cv.aj, vq=cv.fq-cv.aq, ca=cv.aj>0?cv.fj/cv.aj*100:null;
+    const rowId='mkcu-'+ci;
+    custHtml+=`<tr class="cust-row" onclick="toggleMkCust('${rowId}',this)">
+      <td style="font-weight:500">${cn}</td>
+      <td class="tr tf">${cv.fj?fmtRev(cv.fj):'—'}</td>
+      <td class="tr ta">${cv.aj?fmtRev(cv.aj):'—'}</td>
+      <td class="tr ${varCls(vj)}">${vj>=0?'+':''}${fmtRev(Math.abs(vj))}</td>
+      <td class="tr ${ca?ca>=100?'tg':'tx':'tm'}">${ca?ca.toFixed(1)+'%':'—'}</td>
+      <td class="tr tm">${cv.fq?fQ(cv.fq):'—'}</td>
+      <td class="tr tm">${cv.aq?fQ(cv.aq):'—'}</td>
+      <td class="tr ${varCls(vq)}">${vq>=0?'+':''}${fQ(Math.abs(vq))}</td>
+    </tr>`;
+    // P/N rows under each customer
+    const pnArr=Object.values(cv.pns).sort((a,b)=>b.fj-a.fj);
+    pnArr.forEach((pn,pi)=>{
+      const pvj=pn.fj-pn.aj, pvq=pn.fq-pn.aq, pa=pn.aj>0?pn.fj/pn.aj*100:null;
+      const pnId=rowId+'-p'+pi;
+      custHtml+=`<tr class="pn-row" data-parent="${rowId}" style="background:rgba(26,127,212,.05);cursor:pointer" onclick="toggleMkCustPN('${pnId}',this)">
+        <td style="padding-left:20px;font-weight:500;font-size:11px">▶ ${pn.prod} <span style="color:var(--mt);font-size:9px">${pn.gr}</span></td>
+        <td class="tr tf" style="font-size:11px">${pn.fj?fmtRev(pn.fj):'—'}</td>
+        <td class="tr ta" style="font-size:11px">${pn.aj?fmtRev(pn.aj):'—'}</td>
+        <td class="tr ${varCls(pvj)}" style="font-size:11px">${pvj>=0?'+':''}${fmtRev(Math.abs(pvj))}</td>
+        <td class="tr ${pa?pa>=100?'tg':'tx':'tm'}" style="font-size:11px">${pa?pa.toFixed(1)+'%':'—'}</td>
+        <td class="tr tm" style="font-size:11px">${pn.fq?fQ(pn.fq):'—'}</td>
+        <td class="tr tm" style="font-size:11px">${pn.aq?fQ(pn.aq):'—'}</td>
+        <td class="tr ${varCls(pvq)}" style="font-size:11px">${pvq>=0?'+':''}${fQ(Math.abs(pvq))}</td>
+      </tr>`;
+      // Monthly breakdown for this P/N
+      mos.forEach(mo=>{
+        const mm=pn.monthly[mo];
+        if(!mm) return;
+        if(!mm.fj&&!mm.aj) return;
+        const mvj=mm.fj-mm.aj, mvq=mm.fq-mm.aq, ma=mm.aj>0?mm.fj/mm.aj*100:null;
+        custHtml+=`<tr class="pn-row ov-pn-row" data-parent="${rowId}" data-custparent="${pnId}">
+          <td style="padding-left:40px;font-size:10px">↳ ${mo}</td>
+          <td class="tr tf" style="font-size:10px">${mm.fj?fmtRev(mm.fj):'—'}</td>
+          <td class="tr ta" style="font-size:10px">${mm.aj?fmtRev(mm.aj):'—'}</td>
+          <td class="tr ${varCls(mvj)}" style="font-size:10px">${mvj>=0?'+':''}${fmtRev(Math.abs(mvj))}</td>
+          <td class="tr ${ma?ma>=100?'tg':'tx':'tm'}" style="font-size:10px">${ma?ma.toFixed(1)+'%':'—'}</td>
+          <td class="tr tm" style="font-size:10px">${mm.fq?fQ(mm.fq):'—'}</td>
+          <td class="tr tm" style="font-size:10px">${mm.aq?fQ(mm.aq):'—'}</td>
+          <td class="tr ${varCls(mvq)}" style="font-size:10px">${mvq>=0?'+':''}${fQ(Math.abs(mvq))}</td>
+        </tr>`;
+      });
+    });
+  });
+  document.getElementById('mkCustBody').innerHTML=custHtml;
+  const ctvj=cTotFj-cTotAj, ctvq=cTotFq-cTotAq, ctatt=cTotAj>0?cTotFj/cTotAj*100:null;
+  document.getElementById('mkCustFoot').innerHTML=`<tr style="border-top:1px solid var(--bdr2);font-weight:700;background:var(--s2)">
+    <td style="color:var(--fcst)">TOTAL</td>
+    <td class="tr tf">${fmtRev(cTotFj)}</td><td class="tr ta">${fmtRev(cTotAj)}</td>
+    <td class="tr ${varCls(ctvj)}">${ctvj>=0?'+':''}${fmtRev(Math.abs(ctvj))}</td>
+    <td class="tr ${ctatt?ctatt>=100?'tg':'tx':'tm'}">${ctatt?ctatt.toFixed(1)+'%':'—'}</td>
+    <td class="tr tm">${fQ(cTotFq)}</td><td class="tr tm">${fQ(cTotAq)}</td>
+    <td class="tr ${varCls(ctvq)}">${ctvq>=0?'+':''}${fQ(Math.abs(ctvq))}</td>
+  </tr>`;
+}
+
+// ── DETAIL ──────────────────────────────────────────────────────
+let detF=[], detPg_=1, D_PG=25;
+function initDet(){
+  const sel=document.getElementById('dGrp');
+  [...new Set(D.products.map(p=>p.group))].sort().forEach(g=>{const o=document.createElement('option');o.value=g;o.textContent=g;sel.appendChild(o);});
+  filterDet(); updateAllHdrs();
+}
+function filterDet(){
+  const q=document.getElementById('dSrch').value.toLowerCase();
+  const fy=document.getElementById('dFY').value;
+  const grp=document.getElementById('dGrp').value;
+  detF=D.products.filter(p=>{
+    if(q&&!p.prod.toLowerCase().includes(q)&&!p.customer.toLowerCase().includes(q)) return false;
+    if(grp&&p.group!==grp) return false;
+    return (p[fy]?.fcst_jpy||0)>0;
+  }).sort((a,b)=>(b[fy]?.fcst_jpy||0)-(a[fy]?.fcst_jpy||0));
+  detPg_=1; renderDet();
+}
+function renderDet(){
+  const fy=document.getElementById('dFY').value;
+  const total=detF.length, pages=Math.ceil(total/D_PG)||1;
+  const slice=detF.slice((detPg_-1)*D_PG, detPg_*D_PG);
+  document.getElementById('dCount').textContent=total+' lines';
+  document.getElementById('dPgInfo').textContent=`Page ${detPg_} of ${pages} · ${total} rows`;
+  document.getElementById('dPrev').disabled=detPg_<=1;
+  document.getElementById('dNext').disabled=detPg_>=pages;
+  document.getElementById('dTblBody').innerHTML=slice.map(p=>{
+    const pv=p[fy]||{}; const fj=pv.fcst_jpy||0; const aj=pv.aop_jpy||0; const vj=fj-aj;
+    return`<tr>
+      <td style="font-weight:500">${p.prod}</td>
+      <td class="tm" style="font-size:10px">${p.group}</td>
+      <td>${p.customer}</td>
+      <td class="tr tf">${fmtRev(fj)}</td>
+      <td class="tr ta">${fmtRev(aj)}</td>
+      <td class="tr ${varCls(vj)}">${vj>=0?'+':''}${fmtRev(Math.abs(vj))}</td>
+      <td class="tr ${vj>=0?'tg':'tx'}">${attStr(fj,aj)}</td>
+      <td class="tr tm">${fQ(pv.fcst_qty||0)}</td>
+      <td class="tr tm">${fQ(pv.aop_qty||0)}</td>
+      <td class="tr tm">${(pv.fcst_upx||0)>0?'$'+pv.fcst_upx.toFixed(4):'—'}</td>
+      <td class="tr tm">${(pv.aop_upx||0)>0?'¥'+pv.aop_upx.toFixed(4):'—'}</td>
+    </tr>`;
+  }).join('');
+}
+function dPg(d){const pages=Math.ceil(detF.length/D_PG)||1;detPg_=Math.max(1,Math.min(pages,detPg_+d));renderDet();}
+
+// Init header labels
+updateAllHdrs();
+</script>
+
+<script>
+// ── SETTINGS PANEL ──────────────────────────────────────────────
+let uploadedFiles = {fcst: null, aop: null};
+
+function openCfg(){ document.getElementById('cfgOverlay').classList.add('open'); }
+function closeCfg(){ document.getElementById('cfgOverlay').classList.remove('open'); }
+function handleOverlayClick(e){ if(e.target===document.getElementById('cfgOverlay')) closeCfg(); }
+
+function handleFile(type, input){
+  const file = input.files[0];
+  if(!file) return;
+  uploadedFiles[type] = file;
+  const zone = document.getElementById(type+'Zone');
+  const nameEl = document.getElementById(type+'Name');
+  zone.classList.add('loaded');
+  nameEl.textContent = '✓ ' + file.name;
+  checkReady();
+}
+
+// Drag & drop support
+['fcstZone','aopZone'].forEach(id => {
+  const z = document.getElementById(id);
+  z.addEventListener('dragover', e => { e.preventDefault(); z.classList.add('drag-over'); });
+  z.addEventListener('dragleave', () => z.classList.remove('drag-over'));
+  z.addEventListener('drop', e => {
+    e.preventDefault(); z.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if(!file || !file.name.endsWith('.xlsx')) return;
+    const type = id === 'fcstZone' ? 'fcst' : 'aop';
+    uploadedFiles[type] = file;
+    z.classList.add('loaded');
+    document.getElementById(type+'Name').textContent = '✓ ' + file.name;
+    checkReady();
+  });
+});
+
+function checkReady(){
+  const ready = uploadedFiles.fcst && uploadedFiles.aop;
+  document.getElementById('rebuildBtn').disabled = !ready;
+  if(ready) setStatus('Ready — click Rebuild Dashboard');
+}
+
+function setStatus(msg, isErr=false){
+  const el = document.getElementById('cfgStatus');
+  el.textContent = msg;
+  el.style.color = isErr ? 'var(--neg)' : 'var(--mt)';
+}
+
+function setProgress(pct){
+  const bar = document.getElementById('cfgProgressBar');
+  const wrap = document.getElementById('cfgProgress');
+  wrap.style.display = 'block';
+  bar.style.width = pct + '%';
+  if(pct >= 100) setTimeout(() => { wrap.style.display='none'; bar.style.width='0%'; }, 600);
+}
+
+// ── EXCEL PARSER ────────────────────────────────────────────────
+async function rebuildDashboard(){
+  const btn = document.getElementById('rebuildBtn');
+  btn.disabled = true;
+  btn.textContent = 'Parsing…';
+  setProgress(5);
+  setStatus('Reading files…');
+
+  try {
+    const FX = parseFloat(document.getElementById('fxInput').value) || 150;
+
+    // Read both files as ArrayBuffer
+    const [fcstBuf, aopBuf] = await Promise.all([
+      uploadedFiles.fcst.arrayBuffer(),
+      uploadedFiles.aop.arrayBuffer()
+    ]);
+
+    setProgress(15); setStatus('Parsing FCST file…');
+    const fcstData = parseFCST(fcstBuf, FX);
+
+    setProgress(45); setStatus('Parsing AOP file…');
+    const aopData = parseAOP(aopBuf, FX);
+
+    setProgress(65); setStatus('Merging data…');
+    const newD = mergeData(fcstData, aopData, FX);
+
+    setProgress(85); setStatus('Rebuilding charts…');
+
+    // Replace global D and re-init everything
+    Object.assign(D, newD);
+
+    // Update pill
+    const fcstFname = uploadedFiles.fcst.name;
+    const aopFname = uploadedFiles.aop.name;
+    document.getElementById('srcPill').textContent =
+      `FCST: ${fcstFname} · AOP: ${aopFname} · FX ¥${FX}`;
+
+    // Hide empty state overlay
+    hideEmptyState();
+
+    // Destroy all charts and re-init
+    [ovCh, attCh, moCh, gCh, cCh].forEach(c => { try{ if(c) c.destroy(); } catch(e){} });
+    ovCh=null; attCh=null; moCh=null; gCh=null; cCh=null;
+    Object.keys(tabInited).forEach(k => tabInited[k]=false);
+    Object.keys(slideState).forEach(k => delete slideState[k]);
+
+    // Re-init active tab
+    const activeTab = document.querySelector('.tab.active');
+    if(activeTab){
+      const tabId = activeTab.getAttribute('onclick').match(/'(\w+)'/)[1];
+      sw(tabId, true);
+    }
+
+    setProgress(100); setStatus('✓ Dashboard rebuilt successfully');
+    btn.textContent = 'Rebuild Dashboard';
+    btn.disabled = false;
+    setTimeout(closeCfg, 1200);
+
+  } catch(err) {
+    console.error(err);
+    setStatus('Error: ' + err.message, true);
+    setProgress(0);
+    btn.textContent = 'Rebuild Dashboard';
+    btn.disabled = false;
+  }
+}
+
+// ── FCST PARSER ─────────────────────────────────────────────────
+function parseFCST(buf, FX){
+  const wb = XLSX.read(buf, {type:'array'});
+  // Use last sheet (DL_ data sheet)
+  const ws = wb.Sheets[wb.SheetNames[wb.SheetNames.length-1]];
+  const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
+
+  // Month cols 49..78 (0-indexed) = 2026/01 .. 2028/06 (30 months)
+  const fcstMonths = genMonths(2026, 1, 30);
+  const FCST_QTY_START = 49; // Outgoing__c qty Kpcs
+  // Amount row: col0='Amount__c', col3='売上予想(金額)(mY,mD)' -> mUSD monthly
+
+  // Build lookup: key=prod+cust -> {qty: {month: kpcs}, usd: {month: musd}}
+  const lines = {}; // key = prod+'|'+customer
+
+  rows.slice(2).forEach(r => {
+    if(!r[0]) return;
+    const type = r[0];
+    const prod = (r[9]||'').trim();
+    const group = (r[7]||'').trim();
+    const customer = (r[15]||'').trim(); // CustomerA__c
+    const market = (r[22]||'').trim(); // Column W = market name
+    if(!prod || !customer) return;
+    const key = prod+'|'+customer;
+
+    if(!lines[key]) lines[key] = {prod, group, customer, market, qty:{}, usd:{}, fx: parseFloat(r[93])||FX};
+
+    if(type === 'Outgoing__c' && r[3] === '販売計画'){
+      // qty in Kpcs for each month
+      fcstMonths.forEach((mo, i) => {
+        const v = parseFloat(r[FCST_QTY_START+i]) || 0;
+        lines[key].qty[mo] = (lines[key].qty[mo]||0) + v;
+      });
+    }
+    if(type === 'Amount__c' && r[3] === '売上予想(金額)(mY,mD)'){
+      fcstMonths.forEach((mo, i) => {
+        const v = parseFloat(r[FCST_QTY_START+i]) || 0; // mUSD
+        lines[key].usd[mo] = (lines[key].usd[mo]||0) + v;
+      });
+    }
+  });
+
+  return {lines, months: fcstMonths};
+}
+
+// ── AOP PARSER ───────────────────────────────────────────────────
+function parseAOP(buf, FX){
+  const wb = XLSX.read(buf, {type:'array'});
+  const ws = wb.Sheets[wb.SheetNames[0]]; // Sheet1
+  const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
+
+  // 比較対照予算データ qty:  cols 29..64  (0-indexed) = 36 months = 2025/04..2028/03
+  // 比較対照予算データ amt:  cols 137..172 (0-indexed) = 36 months = 2025/04..2028/03
+  // Amounts are in JPY millions directly (do NOT multiply by FX)
+  const aopMonths = genMonths(2025, 4, 36);
+  const AOP_QTY_START = 29;
+  const AOP_AMT_START = 137;
+
+  // Data starts row index 3 (skip header rows 0,1,2)
+  const lines = {}; // key = prod+'|'+customer
+
+  rows.slice(3).forEach(r => {
+    if(!r[0] || r[0]==='通貨') return; // skip blanks/header repeats
+    const prod = (r[5]||'').trim();
+    const group = (r[4]||'').trim();
+    const customer = (r[9]||'').trim(); // 顧客Ａ
+    if(!prod || !customer || prod==='合計') return;
+    const key = prod+'|'+customer;
+    if(!lines[key]) lines[key] = {prod, group, customer, qty:{}, amt:{}};
+
+    aopMonths.forEach((mo, i) => {
+      const q = parseFloat(r[AOP_QTY_START+i]) || 0;
+      const a = parseFloat(r[AOP_AMT_START+i]) || 0; // mJPY directly
+      if(q) lines[key].qty[mo] = (lines[key].qty[mo]||0) + q;
+      if(a) lines[key].amt[mo] = (lines[key].amt[mo]||0) + a;
+    });
+  });
+
+  return {lines, months: aopMonths};
+}
+
+// ── MERGE ─────────────────────────────────────────────────────────
+function mergeData(fcstData, aopData, FX){
+  // Only iterate FCST keys — AOP-only lines are excluded (matches original Python behaviour)
+  const allKeys = new Set(Object.keys(fcstData.lines));
+  const allMonths = new Set([...fcstData.months, ...aopData.months]);
+  const sortedMonths = [...allMonths].sort();
+
+  // FY definitions (Apr-Mar)
+  const fyDef = {
+    fy26: genMonths(2026, 4, 12),
+    fy27: genMonths(2027, 4, 12),
+  };
+
+  const products = [];
+  allKeys.forEach(key => {
+    const [prod, customer] = key.split('|');
+    const fcstLine = fcstData.lines[key] || {};
+    const aopLine = aopData.lines[key] || {};
+    const group = fcstLine.group || aopLine.group || '';
+    const market = fcstLine.market || '';
+    const lineFX = fcstLine.fx || FX;
+
+    // Build monthly
+    const monthly = {};
+    sortedMonths.forEach(mo => {
+      const fq = fcstLine.qty?.[mo] || 0;
+      const fusd = fcstLine.usd?.[mo] || 0;
+      const aq = aopLine.qty?.[mo] || 0;
+      const ajpy = aopLine.amt?.[mo] || 0; // already mJPY
+      if(fq || fusd || aq || ajpy){
+        monthly[mo] = {
+          fcst_qty: fq,
+          fcst_usd: fusd,
+          fcst_jpy: fusd * lineFX,
+          aop_qty: aq,
+          aop_usd: ajpy / FX,
+          aop_jpy: ajpy,
+        };
+      }
+    });
+
+    // Build FY totals
+    const fyTotals = {};
+    Object.entries(fyDef).forEach(([fy, mos]) => {
+      let fq=0,fusd=0,fjpy=0,aq=0,ausd=0,ajpy=0;
+      mos.forEach(mo => {
+        const m = monthly[mo] || {};
+        fq+=m.fcst_qty||0; fusd+=m.fcst_usd||0; fjpy+=m.fcst_jpy||0;
+        aq+=m.aop_qty||0; ausd+=m.aop_usd||0; ajpy+=m.aop_jpy||0;
+      });
+      const upxF = fq>0 ? fusd/fq : 0;
+      const upxA = aq>0 ? ausd/aq : 0;
+      fyTotals[fy] = {fcst_jpy:fjpy,fcst_usd:fusd,fcst_qty:fq,fcst_upx:upxF,
+                      aop_jpy:ajpy,aop_usd:ausd,aop_qty:aq,aop_upx:upxA};
+    });
+
+    products.push({prod, group, customer, market, monthly, ...fyTotals});
+  });
+
+  // Build groups
+  const groupMap = {};
+  products.forEach(p => {
+    if(!groupMap[p.group]) groupMap[p.group] = {name:p.group, fy26:{fcst_jpy:0,aop_jpy:0,fcst_usd:0,aop_usd:0,fcst_qty:0,aop_qty:0}, fy27:{fcst_jpy:0,aop_jpy:0,fcst_usd:0,aop_usd:0,fcst_qty:0,aop_qty:0}};
+    ['fy26','fy27'].forEach(fy => {
+      if(!p[fy]) return;
+      const g=groupMap[p.group][fy];
+      g.fcst_jpy+=p[fy].fcst_jpy||0; g.aop_jpy+=p[fy].aop_jpy||0;
+      g.fcst_usd+=p[fy].fcst_usd||0; g.aop_usd+=p[fy].aop_usd||0;
+      g.fcst_qty+=p[fy].fcst_qty||0; g.aop_qty+=p[fy].aop_qty||0;
+    });
+  });
+
+  // Build markets
+  const marketMap = {};
+  products.forEach(p => {
+    const mk = p.market || 'Unknown';
+    if(!marketMap[mk]) marketMap[mk] = {name:mk, fy26:{fcst_jpy:0,aop_jpy:0,fcst_usd:0,aop_usd:0,fcst_qty:0,aop_qty:0}, fy27:{fcst_jpy:0,aop_jpy:0,fcst_usd:0,aop_usd:0,fcst_qty:0,aop_qty:0}};
+    ['fy26','fy27'].forEach(fy => {
+      if(!p[fy]) return;
+      const m=marketMap[mk][fy];
+      m.fcst_jpy+=p[fy].fcst_jpy||0; m.aop_jpy+=p[fy].aop_jpy||0;
+      m.fcst_usd+=p[fy].fcst_usd||0; m.aop_usd+=p[fy].aop_usd||0;
+      m.fcst_qty+=p[fy].fcst_qty||0; m.aop_qty+=p[fy].aop_qty||0;
+    });
+  });
+
+  // Build customers (with P/N breakdown)
+  const custMap = {};
+  products.forEach(p => {
+    if(!custMap[p.customer]) custMap[p.customer] = {name:p.customer, pn:[], fy26:{fcst_jpy:0,aop_jpy:0,fcst_usd:0,aop_usd:0,fcst_qty:0,aop_qty:0}, fy27:{fcst_jpy:0,aop_jpy:0,fcst_usd:0,aop_usd:0,fcst_qty:0,aop_qty:0}};
+    custMap[p.customer].pn.push({prod:p.prod, group:p.group, fy26:p.fy26, fy27:p.fy27});
+    ['fy26','fy27'].forEach(fy => {
+      if(!p[fy]) return;
+      const c=custMap[p.customer][fy];
+      c.fcst_jpy+=p[fy].fcst_jpy||0; c.aop_jpy+=p[fy].aop_jpy||0;
+      c.fcst_usd+=p[fy].fcst_usd||0; c.aop_usd+=p[fy].aop_usd||0;
+      c.fcst_qty+=p[fy].fcst_qty||0; c.aop_qty+=p[fy].aop_qty||0;
+    });
+  });
+
+  // Build monthly grand total
+  const monthlyTotals = {};
+  products.forEach(p => {
+    Object.entries(p.monthly||{}).forEach(([mo, m]) => {
+      if(!monthlyTotals[mo]) monthlyTotals[mo] = {month:mo,fcst_jpy:0,fcst_usd:0,fcst_qty:0,aop_jpy:0,aop_usd:0,aop_qty:0};
+      const t=monthlyTotals[mo];
+      t.fcst_jpy+=m.fcst_jpy||0; t.fcst_usd+=m.fcst_usd||0; t.fcst_qty+=m.fcst_qty||0;
+      t.aop_jpy+=m.aop_jpy||0; t.aop_usd+=m.aop_usd||0; t.aop_qty+=m.aop_qty||0;
+    });
+  });
+  const monthly = Object.values(monthlyTotals).sort((a,b)=>a.month.localeCompare(b.month))
+    .map(m => ({...m, var_jpy:m.fcst_jpy-m.aop_jpy, att:m.aop_jpy>0?m.fcst_jpy/m.aop_jpy:0}));
+
+  // Build summary per FY
+  const summary = {};
+  const fyLabels = {fy26:'FY2026 (Apr 2026–Mar 2027)',fy27:'FY2027 (Apr 2027–Mar 2028)'};
+  ['fy26','fy27'].forEach(fy => {
+    let fj=0,fu=0,fq=0,aj=0,au=0,aq=0;
+    products.forEach(p => {
+      if(!p[fy]) return;
+      fj+=p[fy].fcst_jpy||0; fu+=p[fy].fcst_usd||0; fq+=p[fy].fcst_qty||0;
+      aj+=p[fy].aop_jpy||0; au+=p[fy].aop_usd||0; aq+=p[fy].aop_qty||0;
+    });
+    summary[fy] = {
+      label: fyLabels[fy],
+      fcst_jpy:fj, fcst_usd:fu, fcst_qty:fq,
+      aop_jpy:aj,  aop_usd:au,  aop_qty:aq,
+      var_jpy:fj-aj, var_usd:fu-au, var_qty:fq-aq,
+      att: aj>0 ? fj/aj*100 : 0,
+    };
+  });
+
+  return {
+    meta: D.meta,
+    summary,
+    monthly,
+    customers: Object.values(custMap),
+    groups: Object.values(groupMap),
+    markets: Object.values(marketMap),
+    products,
+  };
+}
+</script>
+</body>
+</html>
