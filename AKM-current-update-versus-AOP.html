@@ -646,6 +646,7 @@ body{margin:0;padding:0;overflow:hidden;width:100vw;height:100vh;min-height:100v
             <thead>
               <tr>
                 <th rowspan="2">#</th>
+                <th rowspan="2">FID</th>
                 <th rowspan="2">Part Number</th>
                 <th rowspan="2">Group</th>
                 <th rowspan="2">Customer</th>
@@ -1564,6 +1565,7 @@ function renderCompare(){
     const vpq=fq-pq, vpa=fa-pa;   // curr vs prev
     return`<tr>
       <td class="tm">${offset+i+1}</td>
+      <td class="tm" style="font-size:10px">${p.fid||''}</td>
       <td style="font-weight:500">${p.prod}</td>
       <td class="tm" style="font-size:10px">${p.group}</td>
       <td>${p.customer}</td>
@@ -1585,7 +1587,7 @@ function renderCompare(){
   },{aq:0,aa:0,pq:0,pa:0,fq:0,fa:0});
   const vaq=tf.fq-tf.aq,vaa=tf.fa-tf.aa,vpq=tf.fq-tf.pq,vpa=tf.fa-tf.pa;
   document.getElementById('cpTblFoot').innerHTML=`<tr style="border-top:1px solid #2a3a50;font-weight:700;background:var(--s2)">
-    <td colspan="4" style="color:var(--fcst)">TOTAL (${total} lines)</td>
+    <td colspan="5" style="color:var(--fcst)">TOTAL (${total} lines)</td>
     <td class="tr ta" style="font-weight:700">${fQ(tf.aq)}</td>
     <td class="tr ta" style="font-weight:700">${fmtRev(tf.aa)}</td>
     <td class="tr" style="font-weight:700;color:var(--pur)">${fQ(tf.pq)}</td>
@@ -1756,7 +1758,9 @@ function parseFCST(buf, FX){
     if(!prod || !customer) return;
     const key = prod+'|'+customer;
 
-    if(!lines[key]) lines[key] = {prod, group, customer, market, qty:{}, usd:{}, prev_qty:{}, upx:{}, fx: parseFloat(r[93])||FX};
+    const fid = String(r[5]||'').trim().replace(/^0+/,''); // Column F = FID, strip leading zeros
+    if(!lines[key]) lines[key] = {prod, group, customer, market, fid, qty:{}, usd:{}, prev_qty:{}, upx:{}, fx: parseFloat(r[93])||FX};
+    if(fid && !lines[key].fid) lines[key].fid = fid;
 
     const colC = (r[2]||'').trim(); // Column C
     const label = (r[3]||'').trim(); // Column D
@@ -1827,7 +1831,9 @@ function parseAOP(buf, FX){
     const customer = (r[9]||'').trim(); // 顧客Ａ
     if(!prod || !customer || prod==='合計') return;
     const key = prod+'|'+customer;
-    if(!lines[key]) lines[key] = {prod, group, customer, qty:{}, amt:{}};
+    const fid = String(r[1]||'').trim().replace(/^0+/,''); // Column B = ID, strip leading zeros
+    if(!lines[key]) lines[key] = {prod, group, customer, fid, qty:{}, amt:{}};
+    if(fid && !lines[key].fid) lines[key].fid = fid;
 
     aopMonths.forEach((mo, i) => {
       const q = parseFloat(r[AOP_QTY_START+i]) || 0;
@@ -1860,6 +1866,7 @@ function mergeData(fcstData, aopData, FX){
     const aopLine = aopData.lines[key] || {};
     const group = fcstLine.group || aopLine.group || '';
     const market = fcstLine.market || '';
+    const fid = fcstLine.fid || aopLine.fid || '';
     const lineFX = fcstLine.fx || FX;
 
     // Build monthly
@@ -1903,7 +1910,7 @@ function mergeData(fcstData, aopData, FX){
                       prev_jpy:pjpy,prev_usd:pusd,prev_qty:pq};
     });
 
-    products.push({prod, group, customer, market, monthly, ...fyTotals});
+    products.push({prod, group, customer, market, fid, monthly, ...fyTotals});
   });
 
   // Build groups
