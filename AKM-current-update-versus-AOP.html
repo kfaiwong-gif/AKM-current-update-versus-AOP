@@ -287,7 +287,17 @@ body{margin:0;padding:0;overflow:hidden;width:100vw;height:100vh;min-height:100v
     </div>
 
     <div class="cfg-section">
-      <div class="cfg-section-title">② AOP File — 比較対照予算データ</div>
+      <div class="cfg-section-title">② Previous FCST File — 前回 販売計画 <span style="font-size:10px;color:var(--mt)">(optional)</span></div>
+      <div class="drop-zone" id="prevZone">
+        <input type="file" accept=".xlsx" id="prevInput" onchange="handleFile('prev',this)">
+        <div class="drop-zone-icon">📈</div>
+        <div class="drop-zone-label">Drop previous FCST_JetroS_*.xlsx here<br>or click to browse</div>
+        <div class="drop-zone-name" id="prevName"></div>
+      </div>
+    </div>
+
+    <div class="cfg-section">
+      <div class="cfg-section-title">③ AOP File — 比較対照予算データ</div>
       <div class="drop-zone" id="aopZone">
         <input type="file" accept=".xlsx" id="aopInput" onchange="handleFile('aop',this)">
         <div class="drop-zone-icon">📋</div>
@@ -317,6 +327,7 @@ body{margin:0;padding:0;overflow:hidden;width:100vw;height:100vh;min-height:100v
   <div class="tab" onclick="sw('groups')">Product Groups</div>
   <div class="tab" onclick="sw('detail')">Line Detail</div>
   <div class="tab" onclick="sw('markets')">Markets</div>
+  <div class="tab" onclick="sw('compare')">Budget Prev+Curr FCST</div>
 </div>
 
 <div class="main">
@@ -625,6 +636,59 @@ body{margin:0;padding:0;overflow:hidden;width:100vw;height:100vh;min-height:100v
   </div>
 </div>
 
+<!-- COMPARE: Budget Prev+Curr FCST -->
+<div class="view" id="view-compare">
+  <div class="filter-bar" style="flex-shrink:0">
+    <input type="text" class="si si-sm" id="cpSrch" placeholder="Search product, customer…" oninput="filterCompare()">
+    <select class="si" id="cpFY" onchange="filterCompare()">
+      <option value="fy26" selected>FY26 (Apr26–Mar27)</option>
+      <option value="fy27">FY27 (Apr27–Mar28)</option>
+    </select>
+    <select class="si" id="cpGrp" onchange="filterCompare()"><option value="">All Groups</option></select>
+    <span id="cpCount" style="font-family:var(--mono);font-size:10px;color:var(--mt)"></span>
+  </div>
+  <div class="slide-area">
+    <div class="slide active-slide">
+      <div class="panel" style="flex:1;min-height:0;display:flex;flex-direction:column">
+        <div class="ph"><div class="pt">AOP vs Previous FCST vs Current FCST</div><div class="pm" id="cpLbl"></div></div>
+        <div class="tbl-s tbl-ys" style="flex:1;overflow:auto;max-height:none">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th rowspan="2">#</th>
+                <th rowspan="2">Part Number</th>
+                <th rowspan="2">Group</th>
+                <th rowspan="2">Customer</th>
+                <th colspan="2" style="text-align:center;color:var(--aop);border-bottom:1px solid var(--bdr)">AOP (Budget)</th>
+                <th colspan="2" style="text-align:center;color:var(--pur);border-bottom:1px solid var(--bdr)">Prev FCST</th>
+                <th colspan="2" style="text-align:center;color:var(--fcst);border-bottom:1px solid var(--bdr)">Curr FCST</th>
+                <th colspan="2" style="text-align:center;color:var(--pos);border-bottom:1px solid var(--bdr)">Curr vs AOP</th>
+                <th colspan="2" style="text-align:center;color:var(--yel);border-bottom:1px solid var(--bdr)">Curr vs Prev</th>
+              </tr>
+              <tr>
+                <th class="tr" style="color:var(--aop)">Qty</th><th class="tr" style="color:var(--aop)">Amt</th>
+                <th class="tr" style="color:var(--pur)">Qty</th><th class="tr" style="color:var(--pur)">Amt</th>
+                <th class="tr" style="color:var(--fcst)">Qty</th><th class="tr" style="color:var(--fcst)">Amt</th>
+                <th class="tr">Qty Var</th><th class="tr">Amt Var</th>
+                <th class="tr">Qty Var</th><th class="tr">Amt Var</th>
+              </tr>
+            </thead>
+            <tbody id="cpTblBody"></tbody>
+            <tfoot id="cpTblFoot"></tfoot>
+          </table>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 15px;border-top:1px solid var(--bdr);font-family:var(--mono);font-size:10px;color:var(--mt);flex-shrink:0">
+          <span id="cpPgInfo"></span>
+          <div style="display:flex;gap:6px">
+            <button onclick="cpPg(-1)" id="cpPrev" style="background:var(--bg);border:1px solid var(--bdr2);color:var(--mt);font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:3px;cursor:pointer">← Prev</button>
+            <button onclick="cpPg(1)" id="cpNext" style="background:var(--bg);border:1px solid var(--bdr2);color:var(--mt);font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:3px;cursor:pointer">Next →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 </div>
 <!-- SLIDE NAVIGATION -->
 <div class="slide-nav" id="slideNav" style="display:none">
@@ -680,6 +744,7 @@ function refreshAll(){
   if(tabInited['groups']) renderGrps();
   if(tabInited['detail']) renderDet();
   if(tabInited['markets']) renderMarkets();
+  if(tabInited['compare']) renderCompare();
   updateAllHdrs();
 }
 function updateAllHdrs(){
@@ -754,7 +819,7 @@ document.addEventListener('keydown',e=>{
 // ── Tab switching ──────────────────────────────────────────────────
 const tabInited={};
 function sw(n, force=false){
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['overview','monthly','customers','groups','detail','markets'][i]===n));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['overview','monthly','customers','groups','detail','markets','compare'][i]===n));
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+n).classList.add('active');
   activeTabName=n;
@@ -765,6 +830,7 @@ function sw(n, force=false){
     if(n==='groups'){initGrps();}
     if(n==='detail'){initDet();}
     if(n==='markets'){initMarkets();}
+    if(n==='compare'){initCompare();}
   }
   if(!slideState[n]) initSlides(n);
   updateSlideUI();
@@ -1468,13 +1534,89 @@ function renderDet(){
 }
 function dPg(d){const pages=Math.ceil(detF.length/D_PG)||1;detPg_=Math.max(1,Math.min(pages,detPg_+d));renderDet();}
 
+// ── COMPARE: Budget Prev+Curr FCST ──────────────────────────────
+let cpF=[], cpPg_=1, CP_PG=25;
+function initCompare(){
+  const sel=document.getElementById('cpGrp');
+  sel.innerHTML='<option value="">All Groups</option>';
+  [...new Set(D.products.map(p=>p.group))].sort().forEach(g=>{const o=document.createElement('option');o.value=g;o.textContent=g;sel.appendChild(o);});
+  filterCompare();
+}
+function filterCompare(){
+  const q=document.getElementById('cpSrch').value.toLowerCase();
+  const fy=document.getElementById('cpFY').value;
+  const grp=document.getElementById('cpGrp').value;
+  cpF=D.products.filter(p=>{
+    if(q&&!p.prod.toLowerCase().includes(q)&&!p.customer.toLowerCase().includes(q)) return false;
+    if(grp&&p.group!==grp) return false;
+    const pv=p[fy]||{};
+    return (pv.fcst_jpy||0)>0||(pv.aop_jpy||0)>0||(pv.prev_jpy||0)>0;
+  }).sort((a,b)=>(b[fy]?.fcst_jpy||0)-(a[fy]?.fcst_jpy||0));
+  cpPg_=1; renderCompare();
+}
+function renderCompare(){
+  const fy=document.getElementById('cpFY').value;
+  const total=cpF.length, pages=Math.ceil(total/CP_PG)||1;
+  const slice=cpF.slice((cpPg_-1)*CP_PG, cpPg_*CP_PG);
+  const hasPrev=D.products.some(p=>(p[fy]?.prev_jpy||0)>0);
+  document.getElementById('cpCount').textContent=total+' lines'+(hasPrev?'':' · No prev FCST loaded');
+  document.getElementById('cpPgInfo').textContent=`Page ${cpPg_} of ${pages} · ${total} rows`;
+  document.getElementById('cpPrev').disabled=cpPg_<=1;
+  document.getElementById('cpNext').disabled=cpPg_>=pages;
+  document.getElementById('cpLbl').textContent=revSuffix()+(hasPrev?'':' · Previous FCST not uploaded');
+  const offset=(cpPg_-1)*CP_PG;
+  document.getElementById('cpTblBody').innerHTML=slice.map((p,i)=>{
+    const pv=p[fy]||{};
+    const aq=pv.aop_qty||0, aa=pv.aop_jpy||0;
+    const pq=pv.prev_qty||0, pa=pv.prev_jpy||0;
+    const fq=pv.fcst_qty||0, fa=pv.fcst_jpy||0;
+    const vaq=fq-aq, vaa=fa-aa;   // curr vs AOP
+    const vpq=fq-pq, vpa=fa-pa;   // curr vs prev
+    return`<tr>
+      <td class="tm">${offset+i+1}</td>
+      <td style="font-weight:500">${p.prod}</td>
+      <td class="tm" style="font-size:10px">${p.group}</td>
+      <td>${p.customer}</td>
+      <td class="tr ta">${fQ(aq)}</td>
+      <td class="tr ta">${fmtRev(aa)}</td>
+      <td class="tr tm" style="color:var(--pur)">${fQ(pq)}</td>
+      <td class="tr tm" style="color:var(--pur)">${fmtRev(pa)}</td>
+      <td class="tr tf">${fQ(fq)}</td>
+      <td class="tr tf">${fmtRev(fa)}</td>
+      <td class="tr ${varCls(vaq)}">${vaq>=0?'+':''}${fQ(Math.abs(vaq))}</td>
+      <td class="tr ${varCls(vaa)}">${(vaa>=0?'+':'')+fmtRev(Math.abs(vaa))}</td>
+      <td class="tr ${varCls(vpq)}">${vpq>=0?'+':''}${fQ(Math.abs(vpq))}</td>
+      <td class="tr ${varCls(vpa)}">${(vpa>=0?'+':'')+fmtRev(Math.abs(vpa))}</td>
+    </tr>`;
+  }).join('');
+  // Totals footer
+  const tf=cpF.reduce((s,p)=>{const v=p[fy]||{};
+    s.aq+=v.aop_qty||0;s.aa+=v.aop_jpy||0;s.pq+=v.prev_qty||0;s.pa+=v.prev_jpy||0;s.fq+=v.fcst_qty||0;s.fa+=v.fcst_jpy||0;return s;
+  },{aq:0,aa:0,pq:0,pa:0,fq:0,fa:0});
+  const vaq=tf.fq-tf.aq,vaa=tf.fa-tf.aa,vpq=tf.fq-tf.pq,vpa=tf.fa-tf.pa;
+  document.getElementById('cpTblFoot').innerHTML=`<tr style="border-top:1px solid #2a3a50;font-weight:700;background:var(--s2)">
+    <td colspan="4" style="color:var(--fcst)">TOTAL (${total} lines)</td>
+    <td class="tr ta" style="font-weight:700">${fQ(tf.aq)}</td>
+    <td class="tr ta" style="font-weight:700">${fmtRev(tf.aa)}</td>
+    <td class="tr" style="font-weight:700;color:var(--pur)">${fQ(tf.pq)}</td>
+    <td class="tr" style="font-weight:700;color:var(--pur)">${fmtRev(tf.pa)}</td>
+    <td class="tr tf" style="font-weight:700">${fQ(tf.fq)}</td>
+    <td class="tr tf" style="font-weight:700">${fmtRev(tf.fa)}</td>
+    <td class="tr ${varCls(vaq)}" style="font-weight:700">${vaq>=0?'+':''}${fQ(Math.abs(vaq))}</td>
+    <td class="tr ${varCls(vaa)}" style="font-weight:700">${(vaa>=0?'+':'')+fmtRev(Math.abs(vaa))}</td>
+    <td class="tr ${varCls(vpq)}" style="font-weight:700">${vpq>=0?'+':''}${fQ(Math.abs(vpq))}</td>
+    <td class="tr ${varCls(vpa)}" style="font-weight:700">${(vpa>=0?'+':'')+fmtRev(Math.abs(vpa))}</td>
+  </tr>`;
+}
+function cpPg(d){const pages=Math.ceil(cpF.length/CP_PG)||1;cpPg_=Math.max(1,Math.min(pages,cpPg_+d));renderCompare();}
+
 // Init header labels
 updateAllHdrs();
 </script>
 
 <script>
 // ── SETTINGS PANEL ──────────────────────────────────────────────
-let uploadedFiles = {fcst: null, aop: null};
+let uploadedFiles = {fcst: null, aop: null, prev: null};
 
 function openCfg(){ document.getElementById('cfgOverlay').classList.add('open'); }
 function closeCfg(){ document.getElementById('cfgOverlay').classList.remove('open'); }
@@ -1492,7 +1634,7 @@ function handleFile(type, input){
 }
 
 // Drag & drop support
-['fcstZone','aopZone'].forEach(id => {
+['fcstZone','prevZone','aopZone'].forEach(id => {
   const z = document.getElementById(id);
   z.addEventListener('dragover', e => { e.preventDefault(); z.classList.add('drag-over'); });
   z.addEventListener('dragleave', () => z.classList.remove('drag-over'));
@@ -1500,7 +1642,7 @@ function handleFile(type, input){
     e.preventDefault(); z.classList.remove('drag-over');
     const file = e.dataTransfer.files[0];
     if(!file || !file.name.endsWith('.xlsx')) return;
-    const type = id === 'fcstZone' ? 'fcst' : 'aop';
+    const type = id === 'fcstZone' ? 'fcst' : id === 'prevZone' ? 'prev' : 'aop';
     uploadedFiles[type] = file;
     z.classList.add('loaded');
     document.getElementById(type+'Name').textContent = '✓ ' + file.name;
@@ -1539,20 +1681,29 @@ async function rebuildDashboard(){
   try {
     const FX = parseFloat(document.getElementById('fxInput').value) || 150;
 
-    // Read both files as ArrayBuffer
-    const [fcstBuf, aopBuf] = await Promise.all([
+    // Read files as ArrayBuffer
+    const bufPromises = [
       uploadedFiles.fcst.arrayBuffer(),
       uploadedFiles.aop.arrayBuffer()
-    ]);
+    ];
+    if(uploadedFiles.prev) bufPromises.push(uploadedFiles.prev.arrayBuffer());
+    const buffers = await Promise.all(bufPromises);
+    const fcstBuf = buffers[0], aopBuf = buffers[1], prevBuf = buffers[2] || null;
 
     setProgress(15); setStatus('Parsing FCST file…');
     const fcstData = parseFCST(fcstBuf, FX);
+
+    let prevData = null;
+    if(prevBuf){
+      setProgress(30); setStatus('Parsing Previous FCST file…');
+      prevData = parseFCST(prevBuf, FX);
+    }
 
     setProgress(45); setStatus('Parsing AOP file…');
     const aopData = parseAOP(aopBuf, FX);
 
     setProgress(65); setStatus('Merging data…');
-    const newD = mergeData(fcstData, aopData, FX);
+    const newD = mergeData(fcstData, aopData, FX, prevData);
 
     setProgress(85); setStatus('Rebuilding charts…');
 
@@ -1562,8 +1713,9 @@ async function rebuildDashboard(){
     // Update pill
     const fcstFname = uploadedFiles.fcst.name;
     const aopFname = uploadedFiles.aop.name;
+    const prevFname = uploadedFiles.prev ? uploadedFiles.prev.name : null;
     document.getElementById('srcPill').textContent =
-      `FCST: ${fcstFname} · AOP: ${aopFname} · FX ¥${FX}`;
+      `FCST: ${fcstFname}${prevFname?' · Prev: '+prevFname:''} · AOP: ${aopFname} · FX ¥${FX}`;
 
     // Hide empty state overlay
     hideEmptyState();
@@ -1677,10 +1829,11 @@ function parseAOP(buf, FX){
 }
 
 // ── MERGE ─────────────────────────────────────────────────────────
-function mergeData(fcstData, aopData, FX){
+function mergeData(fcstData, aopData, FX, prevData){
   // Only iterate FCST keys — AOP-only lines are excluded (matches original Python behaviour)
   const allKeys = new Set(Object.keys(fcstData.lines));
   const allMonths = new Set([...fcstData.months, ...aopData.months]);
+  if(prevData) prevData.months.forEach(m=>allMonths.add(m));
   const sortedMonths = [...allMonths].sort();
 
   // FY definitions (Apr-Mar)
@@ -1694,9 +1847,11 @@ function mergeData(fcstData, aopData, FX){
     const [prod, customer] = key.split('|');
     const fcstLine = fcstData.lines[key] || {};
     const aopLine = aopData.lines[key] || {};
+    const prevLine = prevData ? (prevData.lines[key] || {}) : {};
     const group = fcstLine.group || aopLine.group || '';
     const market = fcstLine.market || '';
     const lineFX = fcstLine.fx || FX;
+    const prevFX = prevLine.fx || FX;
 
     // Build monthly
     const monthly = {};
@@ -1705,7 +1860,9 @@ function mergeData(fcstData, aopData, FX){
       const fusd = fcstLine.usd?.[mo] || 0;
       const aq = aopLine.qty?.[mo] || 0;
       const ajpy = aopLine.amt?.[mo] || 0; // already mJPY
-      if(fq || fusd || aq || ajpy){
+      const pq = prevLine.qty?.[mo] || 0;
+      const pusd = prevLine.usd?.[mo] || 0;
+      if(fq || fusd || aq || ajpy || pq || pusd){
         monthly[mo] = {
           fcst_qty: fq,
           fcst_usd: fusd,
@@ -1713,6 +1870,9 @@ function mergeData(fcstData, aopData, FX){
           aop_qty: aq,
           aop_usd: ajpy / FX,
           aop_jpy: ajpy,
+          prev_qty: pq,
+          prev_usd: pusd,
+          prev_jpy: pusd * prevFX,
         };
       }
     });
@@ -1720,16 +1880,18 @@ function mergeData(fcstData, aopData, FX){
     // Build FY totals
     const fyTotals = {};
     Object.entries(fyDef).forEach(([fy, mos]) => {
-      let fq=0,fusd=0,fjpy=0,aq=0,ausd=0,ajpy=0;
+      let fq=0,fusd=0,fjpy=0,aq=0,ausd=0,ajpy=0,pq=0,pusd=0,pjpy=0;
       mos.forEach(mo => {
         const m = monthly[mo] || {};
         fq+=m.fcst_qty||0; fusd+=m.fcst_usd||0; fjpy+=m.fcst_jpy||0;
         aq+=m.aop_qty||0; ausd+=m.aop_usd||0; ajpy+=m.aop_jpy||0;
+        pq+=m.prev_qty||0; pusd+=m.prev_usd||0; pjpy+=m.prev_jpy||0;
       });
       const upxF = fq>0 ? fusd/fq : 0;
       const upxA = aq>0 ? ausd/aq : 0;
       fyTotals[fy] = {fcst_jpy:fjpy,fcst_usd:fusd,fcst_qty:fq,fcst_upx:upxF,
-                      aop_jpy:ajpy,aop_usd:ausd,aop_qty:aq,aop_upx:upxA};
+                      aop_jpy:ajpy,aop_usd:ausd,aop_qty:aq,aop_upx:upxA,
+                      prev_jpy:pjpy,prev_usd:pusd,prev_qty:pq};
     });
 
     products.push({prod, group, customer, market, monthly, ...fyTotals});
