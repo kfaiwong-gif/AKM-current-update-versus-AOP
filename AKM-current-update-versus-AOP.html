@@ -287,17 +287,7 @@ body{margin:0;padding:0;overflow:hidden;width:100vw;height:100vh;min-height:100v
     </div>
 
     <div class="cfg-section">
-      <div class="cfg-section-title">② Previous FCST File — 前回 販売計画 <span style="font-size:10px;color:var(--mt)">(optional)</span></div>
-      <div class="drop-zone" id="prevZone">
-        <input type="file" accept=".xlsx" id="prevInput" onchange="handleFile('prev',this)">
-        <div class="drop-zone-icon">📈</div>
-        <div class="drop-zone-label">Drop previous FCST_JetroS_*.xlsx here<br>or click to browse</div>
-        <div class="drop-zone-name" id="prevName"></div>
-      </div>
-    </div>
-
-    <div class="cfg-section">
-      <div class="cfg-section-title">③ AOP File — 比較対照予算データ</div>
+      <div class="cfg-section-title">② AOP File — 比較対照予算データ</div>
       <div class="drop-zone" id="aopZone">
         <input type="file" accept=".xlsx" id="aopInput" onchange="handleFile('aop',this)">
         <div class="drop-zone-icon">📋</div>
@@ -1559,11 +1549,11 @@ function renderCompare(){
   const total=cpF.length, pages=Math.ceil(total/CP_PG)||1;
   const slice=cpF.slice((cpPg_-1)*CP_PG, cpPg_*CP_PG);
   const hasPrev=D.products.some(p=>(p[fy]?.prev_jpy||0)>0);
-  document.getElementById('cpCount').textContent=total+' lines'+(hasPrev?'':' · No prev FCST loaded');
+  document.getElementById('cpCount').textContent=total+' lines'+(hasPrev?'':' · No 前回 仕入計画 data found');
   document.getElementById('cpPgInfo').textContent=`Page ${cpPg_} of ${pages} · ${total} rows`;
   document.getElementById('cpPrev').disabled=cpPg_<=1;
   document.getElementById('cpNext').disabled=cpPg_>=pages;
-  document.getElementById('cpLbl').textContent=revSuffix()+(hasPrev?'':' · Previous FCST not uploaded');
+  document.getElementById('cpLbl').textContent=revSuffix()+(hasPrev?' · Prev = 前回 仕入計画':' · No 前回 仕入計画 rows found in FCST file');
   const offset=(cpPg_-1)*CP_PG;
   document.getElementById('cpTblBody').innerHTML=slice.map((p,i)=>{
     const pv=p[fy]||{};
@@ -1616,7 +1606,7 @@ updateAllHdrs();
 
 <script>
 // ── SETTINGS PANEL ──────────────────────────────────────────────
-let uploadedFiles = {fcst: null, aop: null, prev: null};
+let uploadedFiles = {fcst: null, aop: null};
 
 function openCfg(){ document.getElementById('cfgOverlay').classList.add('open'); }
 function closeCfg(){ document.getElementById('cfgOverlay').classList.remove('open'); }
@@ -1634,7 +1624,7 @@ function handleFile(type, input){
 }
 
 // Drag & drop support
-['fcstZone','prevZone','aopZone'].forEach(id => {
+['fcstZone','aopZone'].forEach(id => {
   const z = document.getElementById(id);
   z.addEventListener('dragover', e => { e.preventDefault(); z.classList.add('drag-over'); });
   z.addEventListener('dragleave', () => z.classList.remove('drag-over'));
@@ -1642,7 +1632,7 @@ function handleFile(type, input){
     e.preventDefault(); z.classList.remove('drag-over');
     const file = e.dataTransfer.files[0];
     if(!file || !file.name.endsWith('.xlsx')) return;
-    const type = id === 'fcstZone' ? 'fcst' : id === 'prevZone' ? 'prev' : 'aop';
+    const type = id === 'fcstZone' ? 'fcst' : 'aop';
     uploadedFiles[type] = file;
     z.classList.add('loaded');
     document.getElementById(type+'Name').textContent = '✓ ' + file.name;
@@ -1681,29 +1671,20 @@ async function rebuildDashboard(){
   try {
     const FX = parseFloat(document.getElementById('fxInput').value) || 150;
 
-    // Read files as ArrayBuffer
-    const bufPromises = [
+    // Read both files as ArrayBuffer
+    const [fcstBuf, aopBuf] = await Promise.all([
       uploadedFiles.fcst.arrayBuffer(),
       uploadedFiles.aop.arrayBuffer()
-    ];
-    if(uploadedFiles.prev) bufPromises.push(uploadedFiles.prev.arrayBuffer());
-    const buffers = await Promise.all(bufPromises);
-    const fcstBuf = buffers[0], aopBuf = buffers[1], prevBuf = buffers[2] || null;
+    ]);
 
-    setProgress(15); setStatus('Parsing FCST file…');
+    setProgress(15); setStatus('Parsing FCST file (incl. 前回 仕入計画)…');
     const fcstData = parseFCST(fcstBuf, FX);
-
-    let prevData = null;
-    if(prevBuf){
-      setProgress(30); setStatus('Parsing Previous FCST file…');
-      prevData = parseFCST(prevBuf, FX);
-    }
 
     setProgress(45); setStatus('Parsing AOP file…');
     const aopData = parseAOP(aopBuf, FX);
 
     setProgress(65); setStatus('Merging data…');
-    const newD = mergeData(fcstData, aopData, FX, prevData);
+    const newD = mergeData(fcstData, aopData, FX);
 
     setProgress(85); setStatus('Rebuilding charts…');
 
@@ -1713,9 +1694,8 @@ async function rebuildDashboard(){
     // Update pill
     const fcstFname = uploadedFiles.fcst.name;
     const aopFname = uploadedFiles.aop.name;
-    const prevFname = uploadedFiles.prev ? uploadedFiles.prev.name : null;
     document.getElementById('srcPill').textContent =
-      `FCST: ${fcstFname}${prevFname?' · Prev: '+prevFname:''} · AOP: ${aopFname} · FX ¥${FX}`;
+      `FCST: ${fcstFname} · AOP: ${aopFname} · FX ¥${FX}`;
 
     // Hide empty state overlay
     hideEmptyState();
@@ -1772,19 +1752,34 @@ function parseFCST(buf, FX){
     if(!prod || !customer) return;
     const key = prod+'|'+customer;
 
-    if(!lines[key]) lines[key] = {prod, group, customer, market, qty:{}, usd:{}, fx: parseFloat(r[93])||FX};
+    if(!lines[key]) lines[key] = {prod, group, customer, market, qty:{}, usd:{}, prev_qty:{}, prev_usd:{}, fx: parseFloat(r[93])||FX};
 
-    if(type === 'Outgoing__c' && r[3] === '販売計画'){
-      // qty in Kpcs for each month
+    const label = (r[3]||'').trim();
+    if(type === 'Outgoing__c' && label === '販売計画'){
+      // Current forecast qty in Kpcs for each month
       fcstMonths.forEach((mo, i) => {
         const v = parseFloat(r[FCST_QTY_START+i]) || 0;
         lines[key].qty[mo] = (lines[key].qty[mo]||0) + v;
       });
     }
-    if(type === 'Amount__c' && r[3] === '売上予想(金額)(mY,mD)'){
+    if(type === 'Outgoing__c' && label === '前回 仕入計画'){
+      // Previous forecast qty in Kpcs
+      fcstMonths.forEach((mo, i) => {
+        const v = parseFloat(r[FCST_QTY_START+i]) || 0;
+        lines[key].prev_qty[mo] = (lines[key].prev_qty[mo]||0) + v;
+      });
+    }
+    if(type === 'Amount__c' && label === '売上予想(金額)(mY,mD)'){
       fcstMonths.forEach((mo, i) => {
         const v = parseFloat(r[FCST_QTY_START+i]) || 0; // mUSD
         lines[key].usd[mo] = (lines[key].usd[mo]||0) + v;
+      });
+    }
+    if(type === 'Amount__c' && label.includes('前回')){
+      // Previous forecast amount in mUSD
+      fcstMonths.forEach((mo, i) => {
+        const v = parseFloat(r[FCST_QTY_START+i]) || 0;
+        lines[key].prev_usd[mo] = (lines[key].prev_usd[mo]||0) + v;
       });
     }
   });
@@ -1829,11 +1824,10 @@ function parseAOP(buf, FX){
 }
 
 // ── MERGE ─────────────────────────────────────────────────────────
-function mergeData(fcstData, aopData, FX, prevData){
+function mergeData(fcstData, aopData, FX){
   // Only iterate FCST keys — AOP-only lines are excluded (matches original Python behaviour)
   const allKeys = new Set(Object.keys(fcstData.lines));
   const allMonths = new Set([...fcstData.months, ...aopData.months]);
-  if(prevData) prevData.months.forEach(m=>allMonths.add(m));
   const sortedMonths = [...allMonths].sort();
 
   // FY definitions (Apr-Mar)
@@ -1847,11 +1841,9 @@ function mergeData(fcstData, aopData, FX, prevData){
     const [prod, customer] = key.split('|');
     const fcstLine = fcstData.lines[key] || {};
     const aopLine = aopData.lines[key] || {};
-    const prevLine = prevData ? (prevData.lines[key] || {}) : {};
     const group = fcstLine.group || aopLine.group || '';
     const market = fcstLine.market || '';
     const lineFX = fcstLine.fx || FX;
-    const prevFX = prevLine.fx || FX;
 
     // Build monthly
     const monthly = {};
@@ -1860,8 +1852,8 @@ function mergeData(fcstData, aopData, FX, prevData){
       const fusd = fcstLine.usd?.[mo] || 0;
       const aq = aopLine.qty?.[mo] || 0;
       const ajpy = aopLine.amt?.[mo] || 0; // already mJPY
-      const pq = prevLine.qty?.[mo] || 0;
-      const pusd = prevLine.usd?.[mo] || 0;
+      const pq = fcstLine.prev_qty?.[mo] || 0;
+      const pusd = fcstLine.prev_usd?.[mo] || 0;
       if(fq || fusd || aq || ajpy || pq || pusd){
         monthly[mo] = {
           fcst_qty: fq,
@@ -1872,7 +1864,7 @@ function mergeData(fcstData, aopData, FX, prevData){
           aop_jpy: ajpy,
           prev_qty: pq,
           prev_usd: pusd,
-          prev_jpy: pusd * prevFX,
+          prev_jpy: pusd * lineFX,
         };
       }
     });
