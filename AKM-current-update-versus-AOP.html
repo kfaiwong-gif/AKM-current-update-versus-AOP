@@ -1680,6 +1680,12 @@ async function rebuildDashboard(){
     setProgress(15); setStatus('Parsing FCST file (incl. 前回 仕入計画)…');
     const fcstData = parseFCST(fcstBuf, FX);
 
+    // Debug: show all type|label combos found in FCST file
+    if(fcstData.debugLabels){
+      console.table(fcstData.debugLabels);
+      alert('FCST row types found (check console too):\n\n' + fcstData.debugLabels.join('\n'));
+    }
+
     setProgress(45); setStatus('Parsing AOP file…');
     const aopData = parseAOP(aopBuf, FX);
 
@@ -1741,6 +1747,7 @@ function parseFCST(buf, FX){
 
   // Build lookup: key=prod+cust -> {qty: {month: kpcs}, usd: {month: musd}}
   const lines = {}; // key = prod+'|'+customer
+  const debugLabels = new Set(); // collect all type|label combos for diagnostics
 
   rows.slice(2).forEach(r => {
     if(!r[0]) return;
@@ -1755,6 +1762,7 @@ function parseFCST(buf, FX){
     if(!lines[key]) lines[key] = {prod, group, customer, market, qty:{}, usd:{}, prev_qty:{}, prev_usd:{}, fx: parseFloat(r[93])||FX};
 
     const label = (r[3]||'').trim();
+    debugLabels.add(type + ' | ' + label);
     if(type === 'Outgoing__c' && label === '販売計画'){
       // Current forecast qty in Kpcs for each month
       fcstMonths.forEach((mo, i) => {
@@ -1762,7 +1770,7 @@ function parseFCST(buf, FX){
         lines[key].qty[mo] = (lines[key].qty[mo]||0) + v;
       });
     }
-    if(type === 'Outgoing__c' && label === '前回 仕入計画'){
+    if(type === 'Outgoing__c' && label.includes('前回')){
       // Previous forecast qty in Kpcs
       fcstMonths.forEach((mo, i) => {
         const v = parseFloat(r[FCST_QTY_START+i]) || 0;
@@ -1784,7 +1792,8 @@ function parseFCST(buf, FX){
     }
   });
 
-  return {lines, months: fcstMonths};
+  console.log('[parseFCST] All type|label combos found:', [...debugLabels].sort());
+  return {lines, months: fcstMonths, debugLabels: [...debugLabels].sort()};
 }
 
 // ── AOP PARSER ───────────────────────────────────────────────────
