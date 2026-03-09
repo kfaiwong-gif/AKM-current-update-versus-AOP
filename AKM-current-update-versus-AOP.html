@@ -650,17 +650,17 @@ body{margin:0;padding:0;overflow:hidden;width:100vw;height:100vh;min-height:100v
                 <th rowspan="2">Group</th>
                 <th rowspan="2">Customer</th>
                 <th colspan="2" style="text-align:center;color:var(--aop);border-bottom:1px solid var(--bdr)">AOP (Budget)</th>
-                <th colspan="2" style="text-align:center;color:var(--pur);border-bottom:1px solid var(--bdr)">Prev FCST</th>
+                <th style="text-align:center;color:var(--pur);border-bottom:1px solid var(--bdr)">Prev FCST</th>
                 <th colspan="2" style="text-align:center;color:var(--fcst);border-bottom:1px solid var(--bdr)">Curr FCST</th>
                 <th colspan="2" style="text-align:center;color:var(--pos);border-bottom:1px solid var(--bdr)">Curr vs AOP</th>
-                <th colspan="2" style="text-align:center;color:var(--yel);border-bottom:1px solid var(--bdr)">Curr vs Prev</th>
+                <th style="text-align:center;color:var(--yel);border-bottom:1px solid var(--bdr)">Curr vs Prev</th>
               </tr>
               <tr>
                 <th class="tr" style="color:var(--aop)">Qty</th><th class="tr" style="color:var(--aop)">Amt</th>
-                <th class="tr" style="color:var(--pur)">Qty</th><th class="tr" style="color:var(--pur)">Amt</th>
+                <th class="tr" style="color:var(--pur)">Qty</th>
                 <th class="tr" style="color:var(--fcst)">Qty</th><th class="tr" style="color:var(--fcst)">Amt</th>
                 <th class="tr">Qty Var</th><th class="tr">Amt Var</th>
-                <th class="tr">Qty Var</th><th class="tr">Amt Var</th>
+                <th class="tr">Qty Var</th>
               </tr>
             </thead>
             <tbody id="cpTblBody"></tbody>
@@ -1540,7 +1540,7 @@ function filterCompare(){
     if(q&&!p.prod.toLowerCase().includes(q)&&!p.customer.toLowerCase().includes(q)) return false;
     if(grp&&p.group!==grp) return false;
     const pv=p[fy]||{};
-    return (pv.fcst_jpy||0)>0||(pv.aop_jpy||0)>0||(pv.prev_jpy||0)>0;
+    return (pv.fcst_jpy||0)>0||(pv.aop_jpy||0)>0||(pv.prev_qty||0)>0;
   }).sort((a,b)=>(b[fy]?.fcst_jpy||0)-(a[fy]?.fcst_jpy||0));
   cpPg_=1; renderCompare();
 }
@@ -1548,7 +1548,7 @@ function renderCompare(){
   const fy=document.getElementById('cpFY').value;
   const total=cpF.length, pages=Math.ceil(total/CP_PG)||1;
   const slice=cpF.slice((cpPg_-1)*CP_PG, cpPg_*CP_PG);
-  const hasPrev=D.products.some(p=>(p[fy]?.prev_jpy||0)>0);
+  const hasPrev=D.products.some(p=>(p[fy]?.prev_qty||0)>0);
   document.getElementById('cpCount').textContent=total+' lines'+(hasPrev?'':' · No 前回 仕入計画 data found');
   document.getElementById('cpPgInfo').textContent=`Page ${cpPg_} of ${pages} · ${total} rows`;
   document.getElementById('cpPrev').disabled=cpPg_<=1;
@@ -1558,10 +1558,10 @@ function renderCompare(){
   document.getElementById('cpTblBody').innerHTML=slice.map((p,i)=>{
     const pv=p[fy]||{};
     const aq=pv.aop_qty||0, aa=pv.aop_jpy||0;
-    const pq=pv.prev_qty||0, pa=pv.prev_jpy||0;
+    const pq=pv.prev_qty||0;
     const fq=pv.fcst_qty||0, fa=pv.fcst_jpy||0;
     const vaq=fq-aq, vaa=fa-aa;   // curr vs AOP
-    const vpq=fq-pq, vpa=fa-pa;   // curr vs prev
+    const vpq=fq-pq;              // curr vs prev (qty only)
     return`<tr>
       <td class="tm">${offset+i+1}</td>
       <td style="font-weight:500">${p.prod}</td>
@@ -1570,32 +1570,28 @@ function renderCompare(){
       <td class="tr ta">${fQ(aq)}</td>
       <td class="tr ta">${fmtRev(aa)}</td>
       <td class="tr tm" style="color:var(--pur)">${fQ(pq)}</td>
-      <td class="tr tm" style="color:var(--pur)">${fmtRev(pa)}</td>
       <td class="tr tf">${fQ(fq)}</td>
       <td class="tr tf">${fmtRev(fa)}</td>
       <td class="tr ${varCls(vaq)}">${vaq>=0?'+':''}${fQ(Math.abs(vaq))}</td>
       <td class="tr ${varCls(vaa)}">${(vaa>=0?'+':'')+fmtRev(Math.abs(vaa))}</td>
       <td class="tr ${varCls(vpq)}">${vpq>=0?'+':''}${fQ(Math.abs(vpq))}</td>
-      <td class="tr ${varCls(vpa)}">${(vpa>=0?'+':'')+fmtRev(Math.abs(vpa))}</td>
     </tr>`;
   }).join('');
   // Totals footer
   const tf=cpF.reduce((s,p)=>{const v=p[fy]||{};
-    s.aq+=v.aop_qty||0;s.aa+=v.aop_jpy||0;s.pq+=v.prev_qty||0;s.pa+=v.prev_jpy||0;s.fq+=v.fcst_qty||0;s.fa+=v.fcst_jpy||0;return s;
-  },{aq:0,aa:0,pq:0,pa:0,fq:0,fa:0});
-  const vaq=tf.fq-tf.aq,vaa=tf.fa-tf.aa,vpq=tf.fq-tf.pq,vpa=tf.fa-tf.pa;
+    s.aq+=v.aop_qty||0;s.aa+=v.aop_jpy||0;s.pq+=v.prev_qty||0;s.fq+=v.fcst_qty||0;s.fa+=v.fcst_jpy||0;return s;
+  },{aq:0,aa:0,pq:0,fq:0,fa:0});
+  const vaq=tf.fq-tf.aq,vaa=tf.fa-tf.aa,vpq=tf.fq-tf.pq;
   document.getElementById('cpTblFoot').innerHTML=`<tr style="border-top:1px solid #2a3a50;font-weight:700;background:var(--s2)">
     <td colspan="4" style="color:var(--fcst)">TOTAL (${total} lines)</td>
     <td class="tr ta" style="font-weight:700">${fQ(tf.aq)}</td>
     <td class="tr ta" style="font-weight:700">${fmtRev(tf.aa)}</td>
     <td class="tr" style="font-weight:700;color:var(--pur)">${fQ(tf.pq)}</td>
-    <td class="tr" style="font-weight:700;color:var(--pur)">${fmtRev(tf.pa)}</td>
     <td class="tr tf" style="font-weight:700">${fQ(tf.fq)}</td>
     <td class="tr tf" style="font-weight:700">${fmtRev(tf.fa)}</td>
     <td class="tr ${varCls(vaq)}" style="font-weight:700">${vaq>=0?'+':''}${fQ(Math.abs(vaq))}</td>
     <td class="tr ${varCls(vaa)}" style="font-weight:700">${(vaa>=0?'+':'')+fmtRev(Math.abs(vaa))}</td>
     <td class="tr ${varCls(vpq)}" style="font-weight:700">${vpq>=0?'+':''}${fQ(Math.abs(vpq))}</td>
-    <td class="tr ${varCls(vpa)}" style="font-weight:700">${(vpa>=0?'+':'')+fmtRev(Math.abs(vpa))}</td>
   </tr>`;
 }
 function cpPg(d){const pages=Math.ceil(cpF.length/CP_PG)||1;cpPg_=Math.max(1,Math.min(pages,cpPg_+d));renderCompare();}
@@ -1680,11 +1676,8 @@ async function rebuildDashboard(){
     setProgress(15); setStatus('Parsing FCST file (incl. 前回 仕入計画)…');
     const fcstData = parseFCST(fcstBuf, FX);
 
-    // Debug: show all type|label combos found in FCST file
-    if(fcstData.debugLabels){
-      console.table(fcstData.debugLabels);
-      alert('FCST row types found (check console too):\n\n' + fcstData.debugLabels.join('\n'));
-    }
+    // Debug: log all type|label combos found in FCST file
+    if(fcstData.debugLabels) console.log('[parseFCST] Row types:', fcstData.debugLabels);
 
     setProgress(45); setStatus('Parsing AOP file…');
     const aopData = parseAOP(aopBuf, FX);
@@ -1759,10 +1752,11 @@ function parseFCST(buf, FX){
     if(!prod || !customer) return;
     const key = prod+'|'+customer;
 
-    if(!lines[key]) lines[key] = {prod, group, customer, market, qty:{}, usd:{}, prev_qty:{}, prev_usd:{}, fx: parseFloat(r[93])||FX};
+    if(!lines[key]) lines[key] = {prod, group, customer, market, qty:{}, usd:{}, prev_qty:{}, fx: parseFloat(r[93])||FX};
 
-    const label = (r[3]||'').trim();
-    debugLabels.add(type + ' | ' + label);
+    const colC = (r[2]||'').trim(); // Column C
+    const label = (r[3]||'').trim(); // Column D
+    debugLabels.add(type + ' | C=' + colC + ' | D=' + label);
     if(type === 'Outgoing__c' && label === '販売計画'){
       // Current forecast qty in Kpcs for each month
       fcstMonths.forEach((mo, i) => {
@@ -1770,8 +1764,8 @@ function parseFCST(buf, FX){
         lines[key].qty[mo] = (lines[key].qty[mo]||0) + v;
       });
     }
-    if(type === 'Outgoing__c' && label.includes('前回')){
-      // Previous forecast qty in Kpcs
+    if(colC === '前回' && label === '仕入計画'){
+      // Previous forecast qty in Kpcs (identified by col C=前回, col D=仕入計画)
       fcstMonths.forEach((mo, i) => {
         const v = parseFloat(r[FCST_QTY_START+i]) || 0;
         lines[key].prev_qty[mo] = (lines[key].prev_qty[mo]||0) + v;
@@ -1781,13 +1775,6 @@ function parseFCST(buf, FX){
       fcstMonths.forEach((mo, i) => {
         const v = parseFloat(r[FCST_QTY_START+i]) || 0; // mUSD
         lines[key].usd[mo] = (lines[key].usd[mo]||0) + v;
-      });
-    }
-    if(type === 'Amount__c' && label.includes('前回')){
-      // Previous forecast amount in mUSD
-      fcstMonths.forEach((mo, i) => {
-        const v = parseFloat(r[FCST_QTY_START+i]) || 0;
-        lines[key].prev_usd[mo] = (lines[key].prev_usd[mo]||0) + v;
       });
     }
   });
@@ -1862,8 +1849,7 @@ function mergeData(fcstData, aopData, FX){
       const aq = aopLine.qty?.[mo] || 0;
       const ajpy = aopLine.amt?.[mo] || 0; // already mJPY
       const pq = fcstLine.prev_qty?.[mo] || 0;
-      const pusd = fcstLine.prev_usd?.[mo] || 0;
-      if(fq || fusd || aq || ajpy || pq || pusd){
+      if(fq || fusd || aq || ajpy || pq){
         monthly[mo] = {
           fcst_qty: fq,
           fcst_usd: fusd,
@@ -1872,8 +1858,6 @@ function mergeData(fcstData, aopData, FX){
           aop_usd: ajpy / FX,
           aop_jpy: ajpy,
           prev_qty: pq,
-          prev_usd: pusd,
-          prev_jpy: pusd * lineFX,
         };
       }
     });
@@ -1881,18 +1865,18 @@ function mergeData(fcstData, aopData, FX){
     // Build FY totals
     const fyTotals = {};
     Object.entries(fyDef).forEach(([fy, mos]) => {
-      let fq=0,fusd=0,fjpy=0,aq=0,ausd=0,ajpy=0,pq=0,pusd=0,pjpy=0;
+      let fq=0,fusd=0,fjpy=0,aq=0,ausd=0,ajpy=0,pq=0;
       mos.forEach(mo => {
         const m = monthly[mo] || {};
         fq+=m.fcst_qty||0; fusd+=m.fcst_usd||0; fjpy+=m.fcst_jpy||0;
         aq+=m.aop_qty||0; ausd+=m.aop_usd||0; ajpy+=m.aop_jpy||0;
-        pq+=m.prev_qty||0; pusd+=m.prev_usd||0; pjpy+=m.prev_jpy||0;
+        pq+=m.prev_qty||0;
       });
       const upxF = fq>0 ? fusd/fq : 0;
       const upxA = aq>0 ? ausd/aq : 0;
       fyTotals[fy] = {fcst_jpy:fjpy,fcst_usd:fusd,fcst_qty:fq,fcst_upx:upxF,
                       aop_jpy:ajpy,aop_usd:ausd,aop_qty:aq,aop_upx:upxA,
-                      prev_jpy:pjpy,prev_usd:pusd,prev_qty:pq};
+                      prev_qty:pq};
     });
 
     products.push({prod, group, customer, market, monthly, ...fyTotals});
