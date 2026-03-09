@@ -679,7 +679,7 @@ body{margin:0;padding:0;overflow:hidden;width:100vw;height:100vh;min-height:100v
     </div>
     <div class="slide">
       <div class="panel" style="flex:1;min-height:0;display:flex;flex-direction:column">
-        <div class="ph"><div class="pt">Monthly Breakdown by Project</div><div class="pm" id="cpMoLbl"></div></div>
+        <div class="ph"><div class="pt">Monthly Breakdown by Project</div><div class="pm" id="cpMoLbl"></div><button onclick="exportCompareXlsx()" style="margin-left:auto;background:var(--fcst);color:#fff;border:none;border-radius:4px;padding:4px 12px;font-family:var(--mono);font-size:10px;cursor:pointer">Export Excel</button></div>
         <div class="tbl-s tbl-ys" style="flex:1;overflow:auto;max-height:none" id="cpMoWrap"></div>
         <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 15px;border-top:1px solid var(--bdr);font-family:var(--mono);font-size:10px;color:var(--mt);flex-shrink:0">
           <span id="cpMoPgInfo"></span>
@@ -1616,11 +1616,41 @@ function cpPg(d){const pages=Math.ceil(cpF.length/CP_PG)||1;cpPg_=Math.max(1,Mat
 
 // ── COMPARE SLIDE 2: Monthly Breakdown per Project ──────────────
 let cpMoPg_=1; const CP_MO_PG=5; // 5 products per page
-function renderCompareMonthly(){
-  const fy=document.getElementById('cpFY').value;
+function cpMoData(fy){
+  // Returns {mos, h1, h2, moLbl, rows(p)} shared by render + export
   const mos=genMonths(fy==='fy26'?2026:2027,4,12);
   const h1=mos.slice(0,6), h2=mos.slice(6,12);
   const moLbl=m=>{const[y,mm]=m.split('/');const mn=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return mn[+mm]+' '+y.slice(2);};
+  const sum=(p,ma)=>{let aq=0,aa=0,pq=0,pa=0,fq=0,fa=0;
+    ma.forEach(mo=>{const m=p.monthly[mo]||{};aq+=m.aop_qty||0;aa+=m.aop_jpy||0;pq+=m.prev_qty||0;pa+=m.prev_jpy||0;fq+=m.fcst_qty||0;fa+=m.fcst_jpy||0;});
+    return{aq,aa,pq,pa,fq,fa};};
+  const metricDefs=[
+    {key:'aq',label:'Quantity – AOP',color:'var(--aop)',isFmt:'q'},
+    {key:'pq',label:'Quantity – Previous FCST',color:'var(--pur)',isFmt:'q'},
+    {key:'fq',label:'Quantity – Current FCST',color:'var(--fcst)',isFmt:'q'},
+    {key:'vaq',label:'Quantity – Curr vs AOP',color:null,isFmt:'vq'},
+    {key:'vpq',label:'Quantity – Curr vs Prev',color:null,isFmt:'vq'},
+    {key:'aa',label:'Amount – AOP',color:'var(--aop)',isFmt:'a'},
+    {key:'pa',label:'Amount – Previous FCST',color:'var(--pur)',isFmt:'a'},
+    {key:'fa',label:'Amount – Current FCST',color:'var(--fcst)',isFmt:'a'},
+    {key:'vaa',label:'Amount – Curr vs AOP',color:null,isFmt:'va'},
+    {key:'vpa',label:'Amount – Curr vs Prev',color:null,isFmt:'va'},
+  ];
+  const buildVals=(p)=>{
+    const cols=[];// 12 months + H1 + H2 + FY = 15 columns
+    mos.forEach(mo=>{const m=p.monthly[mo]||{};
+      cols.push({aq:m.aop_qty||0,aa:m.aop_jpy||0,pq:m.prev_qty||0,pa:m.prev_jpy||0,fq:m.fcst_qty||0,fa:m.fcst_jpy||0});});
+    cols.push(sum(p,h1)); cols.push(sum(p,h2)); cols.push(sum(p,mos));
+    // add variance keys
+    cols.forEach(c=>{c.vaq=c.fq-c.aq;c.vpq=c.fq-c.pq;c.vaa=c.fa-c.aa;c.vpa=c.fa-c.pa;});
+    return cols;
+  };
+  const colLabels=[...mos.map(moLbl),'H1','H2','FY Total'];
+  return{mos,h1,h2,moLbl,sum,metricDefs,buildVals,colLabels};
+}
+function renderCompareMonthly(){
+  const fy=document.getElementById('cpFY').value;
+  const md=cpMoData(fy);
   const total=cpF.length, pages=Math.ceil(total/CP_MO_PG)||1;
   cpMoPg_=Math.max(1,Math.min(pages,cpMoPg_));
   const slice=cpF.slice((cpMoPg_-1)*CP_MO_PG, cpMoPg_*CP_MO_PG);
@@ -1628,63 +1658,73 @@ function renderCompareMonthly(){
   document.getElementById('cpMoPgInfo').textContent=`Page ${cpMoPg_} of ${pages} · ${total} products`;
   document.getElementById('cpMoPrev').disabled=cpMoPg_<=1;
   document.getElementById('cpMoNext').disabled=cpMoPg_>=pages;
-
-  // Build sumRow helper
-  const sumMos=(p,moArr)=>{
-    let aq=0,aa=0,pq=0,pa=0,fq=0,fa=0;
-    moArr.forEach(mo=>{const m=p.monthly[mo]||{};
-      aq+=m.aop_qty||0;aa+=m.aop_jpy||0;
-      pq+=m.prev_qty||0;pa+=m.prev_jpy||0;
-      fq+=m.fcst_qty||0;fa+=m.fcst_jpy||0;});
-    return{aq,aa,pq,pa,fq,fa};
-  };
-  const mkRow=(lbl,s,trStyle)=>{
-    const vaq=s.fq-s.aq,vaa=s.fa-s.aa,vpq=s.fq-s.pq,vpa=s.fa-s.pa;
-    return`<tr${trStyle?` style="${trStyle}"`:''}>
-      <td style="padding-left:12px;font-family:var(--mono);font-size:11px">${lbl}</td>
-      <td class="tr ta">${fQ(s.aq)}</td><td class="tr ta">${fmtRev(s.aa)}</td>
-      <td class="tr" style="color:var(--pur)">${fQ(s.pq)}</td><td class="tr" style="color:var(--pur)">${fmtRev(s.pa)}</td>
-      <td class="tr tf">${fQ(s.fq)}</td><td class="tr tf">${fmtRev(s.fa)}</td>
-      <td class="tr ${varCls(vaq)}">${vaq>=0?'+':''}${fQ(Math.abs(vaq))}</td><td class="tr ${varCls(vaa)}">${(vaa>=0?'+':'')+fmtRev(Math.abs(vaa))}</td>
-      <td class="tr ${varCls(vpq)}">${vpq>=0?'+':''}${fQ(Math.abs(vpq))}</td><td class="tr ${varCls(vpa)}">${(vpa>=0?'+':'')+fmtRev(Math.abs(vpa))}</td>
-    </tr>`;
+  const NC=15;// 12 months + H1 + H2 + FY
+  const subCols=[12,13]; // H1, H2 column indices
+  const fyCols=[14]; // FY column index
+  const fmtCell=(v,t,ci)=>{
+    const isSub=subCols.includes(ci)||fyCols.includes(ci);
+    const w=isSub?'font-weight:600;':'';
+    if(t==='q') return `<td class="tr" style="${w}">${fQ(v)}</td>`;
+    if(t==='a') return `<td class="tr" style="${w}">${fmtRev(v)}</td>`;
+    if(t==='vq') return `<td class="tr ${varCls(v)}" style="${w}">${v>=0?'+':''}${fQ(Math.abs(v))}</td>`;
+    return `<td class="tr ${varCls(v)}" style="${w}">${(v>=0?'+':'')+fmtRev(Math.abs(v))}</td>`;
   };
 
-  let html=`<table class="tbl" style="font-size:11px">`;
-  slice.forEach((p,pi)=>{
-    // Project header row
+  let html=`<table class="tbl" style="font-size:10px;white-space:nowrap">`;
+  slice.forEach(p=>{
+    const cols=md.buildVals(p);
+    // Project header
     html+=`<tr style="background:var(--s2);border-top:2px solid var(--bdr2)">
-      <td colspan="11" style="font-weight:700;padding:6px 12px;font-size:12px">
+      <td colspan="${NC+1}" style="font-weight:700;padding:6px 12px;font-size:12px">
         <span style="color:var(--mt);font-family:var(--mono);font-size:10px">${p.fid||''}</span>
         <span style="margin-left:8px;color:var(--fcst)">${p.prod}</span>
         <span style="margin-left:12px;color:var(--mt);font-size:10px">— ${p.customer}</span>
-      </td>
-    </tr>`;
-    // Sub-header
-    html+=`<tr style="background:var(--bg);font-size:10px;color:var(--mt)">
-      <th style="text-align:left;padding-left:12px">Month</th>
-      <th class="tr" style="color:var(--aop)">AOP Qty</th><th class="tr" style="color:var(--aop)">AOP Amt</th>
-      <th class="tr" style="color:var(--pur)">Prev Qty</th><th class="tr" style="color:var(--pur)">Prev Amt</th>
-      <th class="tr" style="color:var(--fcst)">Curr Qty</th><th class="tr" style="color:var(--fcst)">Curr Amt</th>
-      <th class="tr">vs AOP Qty</th><th class="tr">vs AOP Amt</th>
-      <th class="tr">vs Prev Qty</th><th class="tr">vs Prev Amt</th>
-    </tr>`;
-    // Monthly rows
-    const subStyle='background:var(--s2);font-weight:600;border-top:1px solid var(--bdr2)';
-    const fyStyle='background:var(--s2);font-weight:700;border-top:2px solid var(--bdr2)';
-    mos.forEach((mo,mi)=>{
-      const m=p.monthly[mo]||{};
-      const s={aq:m.aop_qty||0,aa:m.aop_jpy||0,pq:m.prev_qty||0,pa:m.prev_jpy||0,fq:m.fcst_qty||0,fa:m.fcst_jpy||0};
-      html+=mkRow(moLbl(mo),s,'');
-      if(mi===5) html+=mkRow('H1 Subtotal',sumMos(p,h1),subStyle);
+      </td></tr>`;
+    // Column headers: blank + 12 months + H1 + H2 + FY
+    html+=`<tr style="background:var(--bg);font-size:9px;color:var(--mt)"><th></th>`;
+    md.colLabels.forEach((l,ci)=>{
+      const bold=ci>=12?'font-weight:700;':'';
+      html+=`<th class="tr" style="${bold}font-size:9px">${l}</th>`;
     });
-    html+=mkRow('H2 Subtotal',sumMos(p,h2),subStyle);
-    html+=mkRow('FY Total',sumMos(p,mos),fyStyle);
+    html+=`</tr>`;
+    // 10 metric rows
+    md.metricDefs.forEach(def=>{
+      const clr=def.color?`color:${def.color};`:'';
+      html+=`<tr><td style="padding-left:8px;font-size:10px;${clr}white-space:nowrap">${def.label}</td>`;
+      cols.forEach((c,ci)=>{ html+=fmtCell(c[def.key],def.isFmt,ci); });
+      html+=`</tr>`;
+    });
   });
   html+=`</table>`;
   document.getElementById('cpMoWrap').innerHTML=html;
 }
 function cpMoPg(d){const pages=Math.ceil(cpF.length/CP_MO_PG)||1;cpMoPg_=Math.max(1,Math.min(pages,cpMoPg_+d));renderCompareMonthly();}
+
+// ── Excel Export ──────────────────────────────────────────────────
+function exportCompareXlsx(){
+  const fy=document.getElementById('cpFY').value;
+  const md=cpMoData(fy);
+  const hdr=['FID','Part Number','Customer','Metric',...md.colLabels];
+  const rows=[hdr];
+  cpF.forEach(p=>{
+    const cols=md.buildVals(p);
+    md.metricDefs.forEach(def=>{
+      const vals=cols.map(c=>{
+        const v=c[def.key];
+        // For amount metrics, convert to display currency
+        if(def.isFmt==='a'||def.isFmt==='va') return CCY==='jpy'?v:v/FX;
+        return v;
+      });
+      rows.push([p.fid||'',p.prod,p.customer,def.label,...vals]);
+    });
+  });
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  // Column widths
+  ws['!cols']=[{wch:8},{wch:24},{wch:20},{wch:32},...md.colLabels.map(()=>({wch:12}))];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Compare Monthly');
+  XLSX.writeFile(wb,`Compare_Monthly_${fy.toUpperCase()}_${CCY.toUpperCase()}.xlsx`);
+}
 
 // Init header labels
 updateAllHdrs();
