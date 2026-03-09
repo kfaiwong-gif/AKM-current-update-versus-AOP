@@ -1757,8 +1757,8 @@ function parseFCST(buf, FX){
     const colC = (r[2]||'').trim(); // Column C
     const label = (r[3]||'').trim(); // Column D
     debugLabels.add(type + ' | C=' + colC + ' | D=' + label);
-    if(type === 'Outgoing__c' && label === '販売計画'){
-      // Current forecast qty in Kpcs for each month
+    if(colC === '今回' && label === '仕入計画'){
+      // Current forecast qty in Kpcs (col C=今回, col D=仕入計画)
       fcstMonths.forEach((mo, i) => {
         const v = parseFloat(r[FCST_QTY_START+i]) || 0;
         lines[key].qty[mo] = (lines[key].qty[mo]||0) + v;
